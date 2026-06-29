@@ -1,0 +1,40 @@
+{% extends "base.html" %}
+
+{% block content %}
+
+<h2>Image List</h2>
+
+<a href="{% url 'imageapp:create_image' %}">
+    Upload New Image
+</a>
+
+<hr>
+
+{% for obj in object_list %}
+
+<div>
+
+   <h3>{{ obj.title }}</h3>
+    
+    <a href="{% url 'imageapp:delete_image' obj.id %}">
+    	Delete
+    </a>
+
+    <img src="{{ obj.image.url }}"
+         width="300">
+    <p>
+       Prediction :
+       {{ obj.prediction }}
+    </p>
+
+    <p>
+       Confidence :
+       {{ obj.probability|floatformat:2 }} %
+    </p>
+</div>
+
+<hr>
+
+{% endfor %}
+
+{% endblock %}
