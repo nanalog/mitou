@@ -5,16 +5,219 @@
 <head>
 
     <title>IMAGEAI</title>
+    <style>
+    /* ベースのスタイル設定 (ダークモダンテーマ) */
+    :root {
+        --bg-color: #0f172a;
+        --card-bg: #1e293b;
+        --text-primary: #f8fafc;
+        --text-secondary: #94a3b8;
+        --primary-color: #6366f1;
+        --primary-hover: #4f46e5;
+        --danger-color: #ef4444;
+        --danger-hover: #dc2626;
+        --border-radius: 12px;
+    }
+
+    body {
+        background-color: var(--bg-color);
+        color: var(--text-primary);
+        font-family: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+        margin: 0;
+        padding: 0;
+    }
+
+    .ai-container {
+        max-width: 1000px;
+        margin: 40px auto;
+        padding: 0 20px;
+    }
+
+    /* ヘッダーとボタン */
+    .page-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 30px;
+        border-bottom: 1px solid #334155;
+        padding-bottom: 15px;
+    }
+
+    h2 {
+        font-size: 24px;
+        font-weight: 600;
+        margin: 0;
+        background: linear-gradient(90deg, #818cf8, #c084fc);
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+    }
+
+    .btn {
+        display: inline-block;
+        padding: 10px 20px;
+        border-radius: 8px;
+        text-decoration: none;
+        font-weight: 500;
+        font-size: 14px;
+        transition: all 0.2s ease;
+        border: none;
+        cursor: pointer;
+    }
+
+    .btn-primary {
+        background: linear-gradient(135deg, var(--primary-color), #a855f7);
+        color: white;
+        box-shadow: 0 4px 14px 0 rgba(99, 102, 241, 0.39);
+    }
+
+    .btn-primary:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 6px 20px rgba(99, 102, 241, 0.5);
+    }
+
+    .btn-danger {
+        background-color: var(--danger-color);
+        color: white;
+        padding: 6px 12px;
+        font-size: 13px;
+    }
+
+    .btn-danger:hover {
+        background-color: var(--danger-hover);
+    }
+
+    /* 画像ギャラリー (Gridレイアウト) */
+    .image-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+        gap: 24px;
+    }
+
+    .image-card {
+        background-color: var(--card-bg);
+        border-radius: var(--border-radius);
+        overflow: hidden;
+        box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.3);
+        transition: transform 0.3s ease, box-shadow 0.3s ease;
+        border: 1px solid #334155;
+    }
+
+    .image-card:hover {
+        transform: translateY(-5px);
+        box-shadow: 0 15px 30px -5px rgba(0, 0, 0, 0.5);
+        border-color: #475569;
+    }
+
+    .image-wrapper {
+        width: 100%;
+        aspect-ratio: 16 / 9;
+        overflow: hidden;
+        background-color: #000;
+    }
+
+    .image-wrapper img {
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+        transition: transform 0.5s ease;
+    }
+
+    .image-card:hover .image-wrapper img {
+        transform: scale(1.05);
+    }
+
+    .card-footer {
+        padding: 16px;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+    }
+
+    .card-footer h3 {
+        margin: 0;
+        font-size: 16px;
+        font-weight: 500;
+        color: var(--text-primary);
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        max-width: 70%;
+    }
+
+    /* フォームのスタイル */
+    .form-card {
+        background-color: var(--card-bg);
+        padding: 40px;
+        border-radius: var(--border-radius);
+        max-width: 500px;
+        margin: 0 auto;
+        box-shadow: 0 10px 25px rgba(0, 0, 0, 0.5);
+        border: 1px solid #334155;
+    }
+
+    .ai-form p {
+        margin-bottom: 20px;
+    }
+
+    .ai-form label {
+        display: block;
+        margin-bottom: 8px;
+        color: var(--text-secondary);
+        font-size: 14px;
+    }
+
+    .ai-form input[type="text"],
+    .ai-form input[type="file"] {
+        width: 100%;
+        padding: 12px;
+        border-radius: 8px;
+        border: 1px solid #475569;
+        background-color: #0f172a;
+        color: var(--text-primary);
+        box-sizing: border-box;
+        font-family: inherit;
+    }
+
+    .ai-form input:focus {
+        outline: none;
+        border-color: var(--primary-color);
+        box-shadow: 0 0 0 2px rgba(99, 102, 241, 0.2);
+    }
+
+    .btn-full {
+        width: 100%;
+        margin-top: 10px;
+        font-size: 16px;
+        padding: 14px;
+    }
+    </style>
 
 </head>
 
 <body>
-
-    <h1>IMAGEAI</h1>
+    <nav style="background-color: var(--card-bg); border-bottom: 1px solid #334155; padding: 15px 30px; display: flex; justify-content: space-between; align-items: center;">
+        <a href="{% url 'home' %}" style="text-decoration: none;">
+            <span style="font-weight: 700; font-size: 18px; background: linear-gradient(90deg, #818cf8, #c084fc); -webkit-background-clip: text; -webkit-text-fill-color: transparent;">
+                IMAGE AI
+            </span>
+        </a>
+        
+        <div>
+            {% if user.is_authenticated %}
+                <span style="color: var(--text-secondary); font-size: 14px; margin-right: 15px;">{{ user.username }}</span>
+                <form action="{% url 'logout' %}" method="post" style="display: inline;">
+                    {% csrf_token %}
+                    <button type="submit" style="background: none; border: 1px solid #475569; color: var(--text-secondary); cursor: pointer; padding: 6px 12px; border-radius: 6px; font-size: 13px; transition: all 0.2s;">
+                        Logout
+                    </button>
+                </form>
+            {% endif %}
+        </div>
+    </nav>
 
     {% block content %}
     {% endblock %}
-
 </body>
 
 </html>
+

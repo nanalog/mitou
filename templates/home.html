@@ -1,0 +1,36 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="ai-container">
+    <header class="page-header" style="justify-content: center; text-align: center; border-bottom: none; margin-bottom: 40px;">
+        <div>
+            <h2 style="font-size: 32px; margin-bottom: 10px;">Welcome, {{ request.user.username }}</h2>
+            <p style="color: var(--text-secondary); font-size: 16px;">Select a module to continue.</p>
+        </div>
+    </header>
+
+    <div class="image-grid" style="grid-template-columns: repeat(auto-fit, minmax(350px, 1fr)); max-width: 800px; margin: 0 auto;">
+        
+        <a href="{% url 'imageapp:create_image' %}" style="text-decoration: none;">
+            <div class="image-card" style="padding: 40px; text-align: center; background: linear-gradient(145deg, #1e293b, #0f172a);">
+                <div style="font-size: 48px; margin-bottom: 20px;">🚀</div>
+                <h3 style="color: var(--text-primary); font-size: 22px; margin-bottom: 10px;">Upload & Analyze</h3>
+                <p style="color: var(--text-secondary); font-size: 14px; line-height: 1.5;">
+                    Upload a new image and run inference through the AI model.
+                </p>
+            </div>
+        </a>
+
+        <a href="{% url 'imageapp:list_image' %}" style="text-decoration: none;">
+            <div class="image-card" style="padding: 40px; text-align: center; background: linear-gradient(145deg, #1e293b, #0f172a);">
+                <div style="font-size: 48px; margin-bottom: 20px;">📊</div>
+                <h3 style="color: var(--text-primary); font-size: 22px; margin-bottom: 10px;">Inference Gallery</h3>
+                <p style="color: var(--text-secondary); font-size: 14px; line-height: 1.5;">
+                    View previously uploaded images and their prediction results.
+                </p>
+            </div>
+        </a>
+
+    </div>
+</div>
+{% endblock %}

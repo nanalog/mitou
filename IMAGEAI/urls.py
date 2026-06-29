@@ -18,10 +18,23 @@ from django.contrib import admin
 from django.urls import path, include
 from django.conf import settings
 from django.conf.urls.static import static
+from django.views.generic import TemplateView
+from imageapp.views.image.views import SignUpView
 
 urlpatterns = [
     path('admin/', admin.site.urls),
-    path('', include('imageapp.urls')),
+   
+    path('accounts/signup/', SignUpView.as_view(), name='signup'),
+    # ログイン・ログアウト用のDjango標準URLを有効化
+    
+    path('accounts/', include('django.contrib.auth.urls')),
+    # ルートURL（/）をプラットフォーム（home.html）に設定
+    
+    # 今回追加したサインアップ用URL
+    path('accounts/signup/', SignUpView.as_view(), name='signup'),
+    
+    path('', TemplateView.as_view(template_name='home.html'), name='home'),
+    path('', include('imageapp.urls')),# ... 既存のURL ...
 ]
 
 if settings.DEBUG:

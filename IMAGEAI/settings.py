@@ -124,3 +124,8 @@ DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
 
 MEDIA_URL = '/media/'
 MEDIA_ROOT = os.path.join(BASE_DIR, 'media')
+
+# ログイン・ログアウトのルーティング設定
+LOGIN_REDIRECT_URL = 'home'       # ログイン成功時に飛ぶURLの名前
+LOGIN_URL = 'login'               # 未ログインでアクセス制限のあるページにアクセスした際に飛ばすURL
+LOGOUT_REDIRECT_URL = 'login'     # ログアウトした後に飛ぶURL

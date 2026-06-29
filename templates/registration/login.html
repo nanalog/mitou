@@ -1,0 +1,29 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="ai-container" style="max-width: 450px; margin-top: 80px;">
+    <div class="form-card" style="padding: 40px;">
+        <header style="text-align: center; margin-bottom: 30px;">
+            <h2 style="font-size: 28px;">System Login</h2>
+            <p style="color: var(--text-secondary); margin-top: 10px;">Please authenticate to access the AI dashboard.</p>
+        </header>
+
+        {% if form.errors %}
+        <div style="background: rgba(239, 68, 68, 0.1); border: 1px solid var(--danger-color); color: #fca5a5; padding: 12px; border-radius: 8px; margin-bottom: 20px; font-size: 14px;">
+            Your username and password didn't match. Please try again.
+        </div>
+        {% endif %}
+
+        <form method="post" class="ai-form">
+            {% csrf_token %}
+            {{ form.as_p }}
+            <button type="submit" class="btn btn-primary btn-full" style="margin-top: 20px; padding: 14px;">
+                Authenticate
+            </button>
+        </form>
+        <p style="text-align: center; margin-top: 20px; color: var(--text-secondary); font-size: 14px;">
+            Don't have an account? <a href="{% url 'signup' %}" style="color: var(--primary-color);">Sign up now</a>
+        </p>
+    </div>
+</div>
+{% endblock %}

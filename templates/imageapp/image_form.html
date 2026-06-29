@@ -1,19 +1,171 @@
 {% extends "base.html" %}
 
 {% block content %}
+<style>
+/* ドロップゾーン用の追加スタイル */
+.dropzone-container {
+    margin-bottom: 24px;
+}
 
-<h2>Upload Image</h2>
+.dropzone {
+    border: 2px dashed #475569;
+    border-radius: 12px;
+    padding: 40px 20px;
+    text-align: center;
+    background-color: rgba(15, 23, 42, 0.5);
+    transition: all 0.3s ease;
+    cursor: pointer;
+    position: relative;
+    overflow: hidden;
+}
 
-<form method="POST" enctype="multipart/form-data">
+/* ドラッグ中のハイライト */
+.dropzone.dragover {
+    border-color: var(--primary-color);
+    background-color: rgba(99, 102, 241, 0.1);
+}
 
-    {% csrf_token %}
+.dropzone-icon {
+    width: 48px;
+    height: 48px;
+    margin-bottom: 16px;
+    fill: #94a3b8;
+    transition: fill 0.3s ease;
+}
 
-    {{ form.as_p }}
+.dropzone.dragover .dropzone-icon {
+    fill: var(--primary-color);
+}
 
-    <button type="submit">
-        Upload
-    </button>
+.dropzone-title {
+    font-size: 18px;
+    font-weight: 600;
+    color: var(--text-primary);
+    margin-bottom: 8px;
+}
 
-</form>
+.dropzone-desc {
+    font-size: 14px;
+    color: var(--text-secondary);
+}
 
+#file-name-display {
+    margin-top: 12px;
+    font-size: 14px;
+    font-weight: 600;
+    color: var(--success-color, #10b981);
+}
+
+/* Djangoが生成する本来のファイル入力を視覚的に隠す（機能は残す） */
+.django-form-wrapper input[type="file"] {
+    width: 0.1px;
+    height: 0.1px;
+    opacity: 0;
+    overflow: hidden;
+    position: absolute;
+    z-index: -1;
+}
+
+/* その他のテキスト入力（Titleなど）のスタイル調整 */
+.django-form-wrapper label {
+    display: block;
+    margin-bottom: 8px;
+    color: var(--text-secondary);
+    font-size: 14px;
+}
+.django-form-wrapper input[type="text"] {
+    width: 100%;
+    padding: 12px;
+    border-radius: 8px;
+    border: 1px solid #475569;
+    background-color: #0f172a;
+    color: var(--text-primary);
+    box-sizing: border-box;
+    margin-bottom: 16px;
+}
+</style>
+
+<div class="ai-container">
+    <div class="form-card">
+        <header class="page-header" style="border: none; margin-bottom: 20px; padding: 0;">
+            <h2>Upload Image</h2>
+        </header>
+
+        <form method="POST" enctype="multipart/form-data" class="ai-form" id="uploadForm">
+            {% csrf_token %}
+
+            <div class="dropzone-container">
+                <div id="dropzone" class="dropzone">
+                    <svg class="dropzone-icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">
+                        <path d="M19.35 10.04C18.67 6.59 15.64 4 12 4 9.11 4 6.6 5.64 5.36 8.04 2.34 8.36 0 10.91 0 14c0 3.31 2.69 6 6 6h13c2.76 0 5-2.24 5-5 0-2.64-2.05-4.78-4.65-4.96zM14 13v4h-4v-4H7l5-5 5 5h-3z"/>
+                    </svg>
+                    <div class="dropzone-title">Drag & drop an image here</div>
+                    <div class="dropzone-desc">or click to browse from your computer</div>
+                    <div id="file-name-display"></div>
+                </div>
+            </div>
+            
+            <div class="django-form-wrapper">
+                {{ form.as_p }}
+            </div>
+            
+            <button type="submit" class="btn btn-primary btn-full" style="margin-top: 20px;">
+                Start Analysis
+            </button>
+        </form>
+    </div>
+</div>
+
+<script>
+document.addEventListener("DOMContentLoaded", function() {
+    const dropzone = document.getElementById('dropzone');
+    // Djangoが生成したファイルinput要素を取得
+    const fileInput = document.querySelector('.django-form-wrapper input[type="file"]');
+    const fileNameDisplay = document.getElementById('file-name-display');
+
+    if (!fileInput) return; // ファイル入力が存在しない場合は何もしない
+
+    // 1. ドロップゾーンをクリックしたら、隠されたファイル選択ダイアログを開く
+    dropzone.addEventListener('click', () => {
+        fileInput.click();
+    });
+
+    // 2. ドラッグオーバー時のエフェクト（点線枠の色を変える）
+    dropzone.addEventListener('dragover', (e) => {
+        e.preventDefault(); // これがないとドロップイベントが発火しない
+        dropzone.classList.add('dragover');
+    });
+
+    // 3. ドラッグが外れたらエフェクトを戻す
+    dropzone.addEventListener('dragleave', () => {
+        dropzone.classList.remove('dragover');
+    });
+
+    // 4. ドロップされた時の処理
+    dropzone.addEventListener('drop', (e) => {
+        e.preventDefault();
+        dropzone.classList.remove('dragover');
+        
+        // ドロップされたファイルが存在する場合
+        if (e.dataTransfer.files && e.dataTransfer.files.length > 0) {
+            // 隠されたinput要素にドロップされたファイルをセットする
+            fileInput.files = e.dataTransfer.files;
+            // ファイル名を表示
+            updateFileName(e.dataTransfer.files[0].name);
+        }
+    });
+
+    // 5. 通常のクリック操作でファイルが選択された時の処理
+    fileInput.addEventListener('change', () => {
+        if (fileInput.files && fileInput.files.length > 0) {
+            updateFileName(fileInput.files[0].name);
+        }
+    });
+
+    // ファイル名表示を更新する関数
+    function updateFileName(name) {
+        fileNameDisplay.textContent = "Selected file: " + name;
+    }
+});
+</script>
 {% endblock %}
