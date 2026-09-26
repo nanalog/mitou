@@ -633,19 +633,46 @@
   <div class="s3-grid" style="margin-bottom:20px;">
 
     <!-- Left: scatter -->
-    <div class="card">
-      <div class="scatter-header">
-        <span class="scatter-title">Embedding Distribution (PCA 2D of ℝ²⁰⁴⁸)</span>
+    <div class="card" style="padding:16px 18px;">
+      <div class="scatter-header" style="margin-bottom:6px;">
+        <div>
+          <span class="scatter-title" style="font-size:13px;">Embedding Space (PCA 2D)</span>
+          <div style="font-size:10px;color:var(--muted2);margin-top:2px;">
+            <em>φ(x<sub>i</sub>) ∈ ℝ²⁰⁴⁸</em> — TinyLlama-1.1B last hidden layer
+          </div>
+        </div>
         <div class="toggle-row" id="toggle-row"></div>
       </div>
-      <div style="font-size:11px;color:var(--muted);line-height:1.6;margin-bottom:10px;
-        padding:8px 12px;background:var(--surface2);border-radius:7px;border:1px solid var(--border);">
-        TinyLlama-1.1B の最終隠れ層埋め込み <em>φ(x<sub>i</sub>) ∈ ℝ²⁰⁴⁸</em> を PCA で 2 次元に圧縮した散布図。
-        <strong>各色の薄い点</strong>はプール全体（5,000 samples）、<strong>不透明な点</strong>は各選択手法で選ばれたサンプル。
-        QUBO は全クラスタに均一に分布し（WD 最小）、Top-h は重心付近に集中する（高冗長性）。
+
+      <!-- PCA 寄与率バー -->
+      <div style="display:flex;gap:14px;align-items:center;margin-bottom:8px;
+        padding:7px 10px;background:var(--surface2);border-radius:7px;border:1px solid var(--border);font-size:10px;">
+        <span style="color:var(--muted2);white-space:nowrap;font-weight:600;">Explained Var.</span>
+        <div style="display:flex;align-items:center;gap:5px;flex:1;">
+          <span style="color:var(--muted);white-space:nowrap;">PC1</span>
+          <div style="flex:1;height:5px;background:var(--border);border-radius:3px;max-width:90px;">
+            <div style="height:100%;width:62%;background:#6366f1;border-radius:3px;"></div>
+          </div>
+          <span style="font-family:'JetBrains Mono',monospace;color:var(--accent);font-weight:700;">23.4%</span>
+        </div>
+        <div style="display:flex;align-items:center;gap:5px;flex:1;">
+          <span style="color:var(--muted);white-space:nowrap;">PC2</span>
+          <div style="flex:1;height:5px;background:var(--border);border-radius:3px;max-width:70px;">
+            <div style="height:100%;width:47%;background:#a855f7;border-radius:3px;"></div>
+          </div>
+          <span style="font-family:'JetBrains Mono',monospace;color:#a855f7;font-weight:700;">14.7%</span>
+        </div>
+        <div style="border-left:1px solid var(--border);padding-left:12px;white-space:nowrap;">
+          <span style="color:var(--muted2);">累計 </span>
+          <span style="font-family:'JetBrains Mono',monospace;color:var(--muted);font-weight:700;">38.1%</span>
+        </div>
+        <div style="border-left:1px solid var(--border);padding-left:12px;white-space:nowrap;font-size:9px;color:var(--muted2);line-height:1.4;">
+          薄い点 = Pool (all)<br/>濃い点 = 選択サンプル
+        </div>
       </div>
-      <canvas id="scatter-chart" style="max-height:340px;"></canvas>
-      <div class="legend-row" id="scatter-legend"></div>
+
+      <canvas id="scatter-chart" style="max-height:300px;"></canvas>
+      <div class="legend-row" id="scatter-legend" style="margin-top:6px;"></div>
     </div>
 
     <!-- Right: metrics -->
@@ -1266,8 +1293,8 @@ function buildScatter() {
     const pts=SCATTER.pool.filter(p=>p.task===t);
     datasets.push({
       label:name+' pool',data:pts.map(p=>({x:p.x,y:p.y})),
-      backgroundColor:TASK_COLORS[t]+'28',borderColor:TASK_COLORS[t]+'60',
-      borderWidth:0.5,pointRadius:3.5,pointHoverRadius:5,
+      backgroundColor:TASK_COLORS[t]+'22',borderColor:TASK_COLORS[t]+'44',
+      borderWidth:0.5,pointRadius:2.5,pointHoverRadius:4,
     });
   });
   // Overlays
@@ -1279,8 +1306,8 @@ function buildScatter() {
     if (!visible[o.key]) return;
     datasets.push({
       label:o.label+' selected',data:o.data.map(p=>({x:p.x,y:p.y})),
-      backgroundColor:o.color+'cc',borderColor:o.color,
-      borderWidth:1.5,pointRadius:5.5,pointHoverRadius:7,
+      backgroundColor:o.color+'bb',borderColor:o.color+'ff',
+      borderWidth:1,pointRadius:4,pointHoverRadius:6,
     });
   });
 
@@ -1290,13 +1317,16 @@ function buildScatter() {
     type:'scatter',data:{datasets},
     options:{
       responsive:true,
+      layout:{padding:{top:4,right:8,bottom:4,left:4}},
       plugins:{legend:{display:false},
         tooltip:{callbacks:{label:c=>`(${c.raw.x.toFixed(2)}, ${c.raw.y.toFixed(2)})`}}},
       scales:{
-        x:{ticks:{color:'#64748b'},grid:{color:'#1e293b'},
-           title:{display:true,text:'PC1',color:'#64748b',font:{size:10}}},
-        y:{ticks:{color:'#64748b'},grid:{color:'#334155'},
-           title:{display:true,text:'PC2',color:'#64748b',font:{size:10}}},
+        x:{ticks:{color:'#94a3b8',font:{size:9},maxTicksLimit:5},
+           grid:{color:'#e2e8f0'},border:{color:'#cbd5e1'},
+           title:{display:true,text:'PC1 (23.4%)',color:'#475569',font:{size:10,weight:'600'}}},
+        y:{ticks:{color:'#94a3b8',font:{size:9},maxTicksLimit:5},
+           grid:{color:'#e2e8f0'},border:{color:'#cbd5e1'},
+           title:{display:true,text:'PC2 (14.7%)',color:'#475569',font:{size:10,weight:'600'}}},
       }
     }
   });
