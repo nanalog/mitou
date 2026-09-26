@@ -79,6 +79,49 @@
     .obc-name{font-size:11px;font-weight:700;color:var(--text);}
     .obc-desc{font-size:10px;color:var(--muted);line-height:1.5;}
 
+    /* ── Experiment section ── */
+    .exp-section{margin-bottom:28px;display:flex;flex-direction:column;gap:16px;}
+    .exp-block{padding:22px 24px;background:var(--surface);border:1px solid var(--border);
+      border-radius:var(--radius);}
+    .exp-eyebrow{font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.1em;
+      color:var(--success);display:block;margin-bottom:4px;}
+    .exp-title{font-size:16px;font-weight:800;color:var(--text);margin:0 0 10px;}
+    .exp-body{font-size:12px;color:var(--muted);line-height:1.8;margin:0;}
+    .exp-body strong{color:var(--text);}
+
+    /* ターゲットタスクチップ */
+    .task-target-row{display:flex;gap:8px;flex-wrap:wrap;margin-top:12px;}
+    .tt-chip{padding:6px 12px;border-radius:8px;background:var(--tb);border:1px solid var(--tc);
+      font-size:11px;font-weight:700;color:var(--tc);display:flex;flex-direction:column;gap:1px;}
+    .tt-chip span{font-size:9px;font-weight:400;color:var(--muted2);}
+
+    /* ベースモデル + データプール グリッド */
+    .exp-grid{display:grid;grid-template-columns:1fr 1fr;gap:16px;}
+    @media(max-width:720px){.exp-grid{grid-template-columns:1fr;}}
+    .exp-card{background:#fff;border:1px solid var(--border);border-radius:var(--radius);
+      padding:18px 20px;display:flex;flex-direction:column;gap:10px;}
+    .exp-card-eyebrow{font-size:10px;font-weight:700;text-transform:uppercase;
+      letter-spacing:.08em;margin-bottom:-4px;}
+    .exp-card-title{font-size:15px;font-weight:800;color:var(--text);margin:0;}
+    .exp-card-sub{font-size:11px;color:var(--muted);margin-top:-4px;}
+    .exp-card-body{display:flex;flex-direction:column;gap:4px;border-top:1px solid var(--border);
+      padding-top:10px;}
+    .exp-card-note{font-size:10px;color:var(--muted2);line-height:1.6;border-top:1px solid var(--border);
+      padding-top:8px;}
+    .exp-card-note strong{color:var(--muted);}
+    .ec-row{display:flex;justify-content:space-between;align-items:baseline;
+      font-size:11px;padding:3px 0;border-bottom:1px solid rgba(226,232,240,.6);}
+    .ec-row:last-child{border-bottom:none;}
+    .ec-k{color:var(--muted);flex-shrink:0;}
+    .ec-v{font-family:'JetBrains Mono',monospace;font-size:10px;font-weight:600;
+      color:var(--text);text-align:right;}
+    .ec-dataset{padding:8px 10px;border-radius:8px;border-left:3px solid var(--dc);
+      background:var(--surface2);margin-bottom:0;}
+    .ec-ds-name{font-size:11px;font-weight:700;color:var(--dc);margin-bottom:2px;}
+    .ec-ds-desc{font-size:10px;color:var(--muted);line-height:1.5;}
+    .ec-ds-stat{font-size:9px;font-family:'JetBrains Mono',monospace;color:var(--muted2);
+      margin-top:3px;}
+
     /* ── Pipeline flow with token counts ── */
     .pipeline-section{margin-bottom:24px;}
     .pipeline-section h2{font-size:12px;font-weight:700;color:var(--muted2);
@@ -469,6 +512,90 @@
     </div>
   </div>
 
+  <!-- 実験設定 -->
+  <div class="exp-section">
+
+    <!-- 実験目的 -->
+    <div class="exp-block">
+      <span class="exp-eyebrow">Experiment Goal</span>
+      <h2 class="exp-title">どんな SLM を作りたいか</h2>
+      <p class="exp-body">
+        汎用的な命令追従能力を持つ <strong>Small Language Model (SLM)</strong> を、
+        できる限り少ないデータ・計算コストで実現することを目指す。
+        具体的には、以下の多様なタスクカテゴリにわたって安定した性能を示す LLM を
+        <strong>LoRA インストラクションチューニング</strong>で構築する。
+      </p>
+      <!-- ターゲットタスク -->
+      <div class="task-target-row">
+        <div class="tt-chip" style="--tc:#818cf8;--tb:rgba(129,140,248,.1);">命令追従<span>Instruction Following</span></div>
+        <div class="tt-chip" style="--tc:#34d399;--tb:rgba(52,211,153,.1);">知識 QA<span>Closed / Open QA</span></div>
+        <div class="tt-chip" style="--tc:#fb923c;--tb:rgba(251,146,60,.1);">多タスク汎化<span>Zero-shot Generalization</span></div>
+        <div class="tt-chip" style="--tc:#f472b6;--tb:rgba(244,114,182,.1);">推論・コード<span>Reasoning / Code</span></div>
+        <div class="tt-chip" style="--tc:#fbbf24;--tb:rgba(251,191,36,.1);">要約・分類<span>Summarization / NLI</span></div>
+      </div>
+      <p class="exp-body" style="margin-top:12px;color:var(--muted2);font-size:11px;">
+        これらを一度のファインチューニングで網羅するには、
+        <em>各タスクを代表しつつ冗長でない</em> 学習データセットが必要になる。
+        全データを使えば計算コストが高く、単純なランダム・高スコア順選択では
+        タスク間バランスが崩れるという課題がある。
+      </p>
+    </div>
+
+    <!-- ベースモデル + データプール 横並び -->
+    <div class="exp-grid">
+
+      <!-- Base model -->
+      <div class="exp-card">
+        <div class="exp-card-eyebrow" style="color:#818cf8;">Base Model</div>
+        <div class="exp-card-title">TinyLlama-1.1B</div>
+        <div class="exp-card-sub">Small Language Model — LoRA でファインチューニング</div>
+        <div class="exp-card-body">
+          <div class="ec-row"><span class="ec-k">Parameters</span><span class="ec-v">1.1 B</span></div>
+          <div class="ec-row"><span class="ec-k">Architecture</span><span class="ec-v">Llama 2 / 22 layers</span></div>
+          <div class="ec-row"><span class="ec-k">Hidden dim</span><span class="ec-v">2,048</span></div>
+          <div class="ec-row"><span class="ec-k">Attention heads</span><span class="ec-v">32</span></div>
+          <div class="ec-row"><span class="ec-k">Embedding</span><span class="ec-v">hidden_states[−2], mean-pool</span></div>
+          <div class="ec-row"><span class="ec-k">Fine-tuning</span><span class="ec-v">LoRA (r=8, α=16)</span></div>
+          <div class="ec-row"><span class="ec-k">Target modules</span><span class="ec-v">q_proj, v_proj</span></div>
+        </div>
+        <div class="exp-card-note">
+          1B 規模 SLM としてエッジ推論・研究用途に広く使われる。
+          LoRA により全パラメータの <strong>0.1%</strong> 以下のみ更新。
+        </div>
+      </div>
+
+      <!-- Data pool -->
+      <div class="exp-card">
+        <div class="exp-card-eyebrow" style="color:#34d399;">Training Data Pool</div>
+        <div class="exp-card-title">5,000 Samples · 2,487K tokens</div>
+        <div class="exp-card-sub">4 種の公開インストラクションチューニング用データセット</div>
+        <div class="exp-card-body" style="gap:8px;">
+          <div class="ec-dataset" style="--dc:#818cf8;">
+            <div class="ec-ds-name">Alpaca ×1,250</div>
+            <div class="ec-ds-desc">GPT-4 生成の汎用命令追従データ。QA・翻訳・文章生成など多様なタスクを広くカバー。</div>
+            <div class="ec-ds-stat">avg 450 tok · 562K tok total</div>
+          </div>
+          <div class="ec-dataset" style="--dc:#34d399;">
+            <div class="ec-ds-name">Dolly ×1,250</div>
+            <div class="ec-ds-desc">人間が執筆した知識 QA・要約・分類データ。実際の人間の問いに即した質の高い回答。</div>
+            <div class="ec-ds-stat">avg 520 tok · 650K tok total</div>
+          </div>
+          <div class="ec-dataset" style="--dc:#fb923c;">
+            <div class="ec-ds-name">FLAN ×1,250</div>
+            <div class="ec-ds-desc">60+ タスクを統合したコレクション。ゼロショット汎化・NLI・感情分類に強い。</div>
+            <div class="ec-ds-stat">avg 380 tok · 475K tok total</div>
+          </div>
+          <div class="ec-dataset" style="--dc:#f472b6;">
+            <div class="ec-ds-name">WizardLM ×1,250</div>
+            <div class="ec-ds-desc">Evol-Instruct で複雑化した命令データ。高難度の推論・コード生成・数学問題に特化。</div>
+            <div class="ec-ds-stat">avg 650 tok · 812K tok total</div>
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
   <!-- Pipeline flow with token counts -->
   <div class="pipeline-section">
     <h2>処理フローと学習トークン削減</h2>
@@ -525,20 +652,8 @@
   </div>
 
   <div class="grid2">
-    <!-- Base model -->
-    <div class="card">
-      <div class="card-label">Base Model — TinyLlama-1.1B</div>
-      <div class="info-row"><span class="ik">Parameters</span><span class="iv">1.1B</span></div>
-      <div class="info-row"><span class="ik">Hidden dim</span><span class="iv">2,048</span></div>
-      <div class="info-row"><span class="ik">Layers</span><span class="iv">22 transformer</span></div>
-      <div class="info-row"><span class="ik">Attention heads</span><span class="iv">32</span></div>
-      <div class="info-row"><span class="ik">Embedding used</span><span class="iv">hidden_states[−2]</span></div>
-      <div class="info-row"><span class="ik">Pooling</span><span class="iv">mean-pool (attention-masked)</span></div>
-      <div class="info-row"><span class="ik">Target</span><span class="iv">LoRA fine-tuning</span></div>
-    </div>
-
     <!-- RDS+ Scorer -->
-    <div class="card">
+    <div class="card" style="grid-column:1/-1;">
       <div class="card-label">RDS+ 影響度スコア (forward-pass only)</div>
       <div style="font-size:11px;color:var(--muted);line-height:1.7;margin-bottom:10px;">
         勾配不要。順伝搬のみでタスクごとの重みづけスコアを推定します。<br/>
@@ -559,35 +674,6 @@
         <code style="background:rgba(99,102,241,.1);padding:1px 5px;border-radius:3px;margin-left:4px;">inv_freq</code>
         <code style="background:rgba(99,102,241,.1);padding:1px 5px;border-radius:3px;margin-left:4px;">inv_loss</code>
         <code style="background:rgba(99,102,241,.1);padding:1px 5px;border-radius:3px;margin-left:4px;">custom</code>
-      </div>
-    </div>
-  </div>
-
-  <!-- Task breakdown -->
-  <div class="grid2" style="margin-bottom:16px;">
-    <div class="card" style="grid-column:1/-1;">
-      <div class="card-label">Training Data Pool — 5,000 samples · 2,487,320 tokens</div>
-      <div class="grid2" style="margin-bottom:0;margin-top:4px;">
-        <div class="task-card" style="background:rgba(99,102,241,.06);border-color:rgba(99,102,241,.25);">
-          <div class="task-title" style="color:#818cf8;">Alpaca ×1,250</div>
-          <div class="task-desc">Stanford Alpaca — GPT-4生成の命令追従データ。多様なQA・文章生成・翻訳など汎用タスク。</div>
-          <div class="task-stats"><span class="ts">avg <strong>450</strong> tok</span><span class="ts">total <strong>562K</strong> tok</span></div>
-        </div>
-        <div class="task-card" style="background:rgba(52,211,153,.06);border-color:rgba(52,211,153,.2);">
-          <div class="task-title" style="color:#34d399;">Dolly ×1,250</div>
-          <div class="task-desc">Databricks Dolly — 人間が執筆した知識QAデータ。Closed QA・Open QA・要約・分類。</div>
-          <div class="task-stats"><span class="ts">avg <strong>520</strong> tok</span><span class="ts">total <strong>650K</strong> tok</span></div>
-        </div>
-        <div class="task-card" style="background:rgba(251,146,60,.06);border-color:rgba(251,146,60,.2);">
-          <div class="task-title" style="color:#fb923c;">FLAN ×1,250</div>
-          <div class="task-desc">FLAN Collection — 60以上のタスクをプロンプトテンプレートで統合。ゼロショット汎化に強い。</div>
-          <div class="task-stats"><span class="ts">avg <strong>380</strong> tok</span><span class="ts">total <strong>475K</strong> tok</span></div>
-        </div>
-        <div class="task-card" style="background:rgba(244,114,182,.06);border-color:rgba(244,114,182,.2);">
-          <div class="task-title" style="color:#f472b6;">WizardLM ×1,250</div>
-          <div class="task-desc">Evol-Instruct — 複雑度を段階的に増加させた難しい命令データ。推論・コード生成に強い。</div>
-          <div class="task-stats"><span class="ts">avg <strong>650</strong> tok</span><span class="ts">total <strong>812K</strong> tok</span></div>
-        </div>
       </div>
     </div>
   </div>
