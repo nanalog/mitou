@@ -1,0 +1,847 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>IMAGE AI</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
+  <!-- ONNX Runtime Web (browser inference) -->
+  <script src="https://cdn.jsdelivr.net/npm/onnxruntime-web@1.19.2/dist/ort.min.js"></script>
+  <style>
+    /* ── Design tokens ─────────────────────────────────── */
+    :root {
+      --bg:          #0f172a;
+      --surface:     #1e293b;
+      --surface2:    #0f172a;
+      --border:      #334155;
+      --border2:     #475569;
+      --text:        #f8fafc;
+      --muted:       #94a3b8;
+      --accent:      #6366f1;
+      --accent2:     #a78bfa;
+      --success:     #10b981;
+      --danger:      #ef4444;
+      --radius:      14px;
+    }
+
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      background: var(--bg);
+      color: var(--text);
+      font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+      min-height: 100vh;
+    }
+
+    /* ── Nav ─────────────────────────────────────────────── */
+    nav {
+      background: var(--surface);
+      border-bottom: 1px solid var(--border);
+      padding: 0 32px;
+      height: 58px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      position: sticky;
+      top: 0;
+      z-index: 100;
+    }
+    .nav-logo {
+      font-size: 18px;
+      font-weight: 700;
+      background: linear-gradient(90deg, #818cf8, #c084fc);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      letter-spacing: -0.3px;
+    }
+    .nav-status {
+      font-size: 13px;
+      color: var(--muted);
+    }
+    .model-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      font-size: 12px;
+      padding: 4px 10px;
+      border-radius: 20px;
+      background: rgba(99,102,241,0.12);
+      border: 1px solid rgba(99,102,241,0.25);
+      color: #a5b4fc;
+    }
+    .dot {
+      width: 7px;
+      height: 7px;
+      border-radius: 50%;
+      background: var(--muted);
+      flex-shrink: 0;
+    }
+    .dot.ready   { background: var(--success); box-shadow: 0 0 6px var(--success); }
+    .dot.loading { background: #fbbf24; animation: pulse-dot 1s infinite; }
+    .dot.error   { background: var(--danger); }
+    @keyframes pulse-dot {
+      0%,100% { opacity: 1; } 50% { opacity: 0.3; }
+    }
+
+    /* ── Main layout ─────────────────────────────────────── */
+    .container {
+      max-width: 1100px;
+      margin: 40px auto;
+      padding: 0 24px;
+    }
+
+    /* ── Upload card ─────────────────────────────────────── */
+    .upload-card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 36px;
+      margin-bottom: 40px;
+    }
+    .section-title {
+      font-size: 13px;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      color: var(--muted);
+      margin-bottom: 20px;
+    }
+
+    /* Dropzone */
+    .dropzone {
+      border: 2px dashed var(--border2);
+      border-radius: 12px;
+      padding: 44px 24px;
+      text-align: center;
+      cursor: pointer;
+      transition: all 0.25s ease;
+      position: relative;
+      background: rgba(15,23,42,0.4);
+    }
+    .dropzone.dragover,
+    .dropzone:focus-within {
+      border-color: var(--accent);
+      background: rgba(99,102,241,0.06);
+    }
+    .dropzone input[type="file"] {
+      position: absolute;
+      inset: 0;
+      opacity: 0;
+      cursor: pointer;
+      width: 100%;
+      height: 100%;
+    }
+    .dz-icon {
+      width: 44px;
+      height: 44px;
+      fill: var(--border2);
+      margin-bottom: 14px;
+      transition: fill 0.25s;
+    }
+    .dropzone.dragover .dz-icon { fill: var(--accent); }
+    .dz-title {
+      font-size: 16px;
+      font-weight: 600;
+      color: var(--text);
+      margin-bottom: 6px;
+    }
+    .dz-sub {
+      font-size: 13px;
+      color: var(--muted);
+    }
+    #selected-file {
+      margin-top: 12px;
+      font-size: 13px;
+      font-weight: 600;
+      color: var(--success);
+      min-height: 20px;
+    }
+
+    /* Title input */
+    .field-row {
+      display: flex;
+      gap: 12px;
+      align-items: flex-end;
+      margin-top: 20px;
+    }
+    .field-row input[type="text"] {
+      flex: 1;
+      padding: 12px 14px;
+      border-radius: 8px;
+      border: 1px solid var(--border2);
+      background: var(--surface2);
+      color: var(--text);
+      font-size: 14px;
+      font-family: inherit;
+      outline: none;
+      transition: border-color 0.2s;
+    }
+    .field-row input[type="text"]::placeholder { color: var(--muted); }
+    .field-row input[type="text"]:focus { border-color: var(--accent); }
+
+    /* Buttons */
+    .btn {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 7px;
+      padding: 12px 22px;
+      border-radius: 9px;
+      border: none;
+      font-size: 14px;
+      font-weight: 600;
+      font-family: inherit;
+      cursor: pointer;
+      transition: all 0.2s ease;
+      white-space: nowrap;
+    }
+    .btn-primary {
+      background: linear-gradient(135deg, var(--accent), #4f46e5);
+      color: #fff;
+      box-shadow: 0 4px 14px rgba(99,102,241,0.35);
+    }
+    .btn-primary:hover:not(:disabled) {
+      transform: translateY(-2px);
+      box-shadow: 0 6px 20px rgba(99,102,241,0.5);
+    }
+    .btn-primary:disabled {
+      opacity: 0.45;
+      cursor: not-allowed;
+    }
+    .btn-ghost {
+      background: transparent;
+      color: var(--danger);
+      border: 1px solid rgba(239,68,68,0.2);
+      padding: 6px 12px;
+      font-size: 12px;
+    }
+    .btn-ghost:hover { background: rgba(239,68,68,0.08); border-color: var(--danger); }
+
+    /* Result preview */
+    #result-preview {
+      display: none;
+      margin-top: 24px;
+      padding: 20px;
+      background: var(--surface2);
+      border-radius: 10px;
+      border: 1px solid var(--border);
+      align-items: center;
+      gap: 20px;
+    }
+    #result-preview.visible { display: flex; }
+    #preview-img {
+      width: 80px;
+      height: 80px;
+      object-fit: cover;
+      border-radius: 8px;
+      flex-shrink: 0;
+      border: 1px solid var(--border);
+    }
+    .result-info { flex: 1; }
+    .result-label { font-size: 11px; color: var(--muted); text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 4px; }
+    .result-value { font-size: 22px; font-weight: 700; color: var(--text); margin-bottom: 10px; }
+    .conf-row { display: flex; justify-content: space-between; font-size: 12px; margin-bottom: 6px; }
+    .conf-pct { color: var(--success); font-weight: 600; }
+    .progress-track { background: var(--bg); height: 7px; border-radius: 4px; overflow: hidden; }
+    .progress-fill {
+      height: 100%;
+      border-radius: 4px;
+      background: linear-gradient(90deg, var(--accent), var(--success));
+      transition: width 0.7s cubic-bezier(0.4,0,0.2,1);
+    }
+    .spinner {
+      display: none;
+      width: 28px;
+      height: 28px;
+      border: 3px solid var(--border);
+      border-top-color: var(--accent);
+      border-radius: 50%;
+      animation: spin 0.7s linear infinite;
+      flex-shrink: 0;
+    }
+    .spinner.visible { display: block; }
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    /* ── Gallery ─────────────────────────────────────────── */
+    .gallery-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: baseline;
+      margin-bottom: 20px;
+    }
+    .gallery-title {
+      font-size: 20px;
+      font-weight: 700;
+      background: linear-gradient(90deg, #a78bfa, var(--accent));
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
+    .count-badge {
+      font-size: 12px;
+      color: var(--muted);
+    }
+
+    .image-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+      gap: 24px;
+    }
+
+    .image-card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      overflow: hidden;
+      transition: transform 0.3s ease, box-shadow 0.3s ease, border-color 0.3s ease;
+      display: flex;
+      flex-direction: column;
+    }
+    .image-card:hover {
+      transform: translateY(-5px);
+      box-shadow: 0 12px 30px rgba(0,0,0,0.5);
+      border-color: var(--accent);
+    }
+    .img-wrapper {
+      aspect-ratio: 4/3;
+      overflow: hidden;
+      background: #090d16;
+    }
+    .img-wrapper img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      transition: transform 0.5s ease;
+    }
+    .image-card:hover .img-wrapper img { transform: scale(1.05); }
+
+    .card-body {
+      padding: 16px 18px;
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+    .card-title-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+    .card-title {
+      font-size: 13px;
+      color: var(--muted);
+      font-weight: 500;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      max-width: 75%;
+    }
+    .card-date {
+      font-size: 11px;
+      color: #64748b;
+      white-space: nowrap;
+    }
+    .pred-box {
+      background: rgba(99,102,241,0.08);
+      border: 1px solid rgba(99,102,241,0.18);
+      border-radius: 9px;
+      padding: 11px 14px;
+    }
+    .pred-lbl { font-size: 10px; color: #a5b4fc; text-transform: uppercase; letter-spacing: 0.06em; margin-bottom: 3px; }
+    .pred-val { font-size: 20px; font-weight: 700; }
+    .conf-box { display: flex; flex-direction: column; gap: 6px; }
+    .conf-info { display: flex; justify-content: space-between; font-size: 12px; }
+    .conf-ttl { color: var(--muted); }
+    .conf-val { color: var(--success); font-weight: 600; font-variant-numeric: tabular-nums; }
+
+    .card-actions {
+      padding: 0 18px 14px;
+      display: flex;
+      justify-content: flex-end;
+    }
+
+    .empty-state {
+      grid-column: 1 / -1;
+      text-align: center;
+      padding: 80px 0;
+      color: var(--muted);
+    }
+    .empty-state p { margin-top: 10px; font-size: 14px; }
+
+    /* Toast */
+    #toast {
+      position: fixed;
+      bottom: 28px;
+      left: 50%;
+      transform: translateX(-50%) translateY(12px);
+      background: var(--surface);
+      border: 1px solid var(--border);
+      color: var(--text);
+      padding: 11px 20px;
+      border-radius: 8px;
+      font-size: 13px;
+      box-shadow: 0 8px 24px rgba(0,0,0,0.4);
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity 0.25s, transform 0.25s;
+      z-index: 200;
+    }
+    #toast.show {
+      opacity: 1;
+      transform: translateX(-50%) translateY(0);
+    }
+
+    /* ONNX note banner */
+    .model-note {
+      background: rgba(99,102,241,0.07);
+      border: 1px solid rgba(99,102,241,0.2);
+      border-radius: 9px;
+      padding: 13px 16px;
+      font-size: 13px;
+      color: #a5b4fc;
+      margin-bottom: 20px;
+      line-height: 1.55;
+    }
+    .model-note strong { color: var(--text); }
+
+    @media (max-width: 600px) {
+      .container { padding: 0 14px; }
+      .upload-card { padding: 20px; }
+      .field-row { flex-direction: column; }
+      .field-row .btn { width: 100%; }
+    }
+  </style>
+</head>
+<body>
+
+<!-- Nav -->
+<nav>
+  <span class="nav-logo">IMAGE AI</span>
+  <div style="display:flex;align-items:center;gap:14px;">
+    <span class="model-badge">
+      <span class="dot" id="model-dot"></span>
+      <span id="model-label">Loading model…</span>
+    </span>
+  </div>
+</nav>
+
+<div class="container">
+
+  <!-- Upload card -->
+  <div class="upload-card">
+    <div class="section-title">New Analysis</div>
+
+    <div class="model-note" id="model-note">
+      <strong>CIFAR-10 ResNet18</strong> — ONNX Runtime Web で推論します。
+      モデルを読み込み中です…初回は少し時間がかかります。
+    </div>
+
+    <!-- Dropzone -->
+    <div class="dropzone" id="dropzone" role="button" tabindex="0" aria-label="Upload image">
+      <input type="file" id="file-input" accept="image/*" aria-label="Choose image file" />
+      <svg class="dz-icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">
+        <path d="M19.35 10.04C18.67 6.59 15.64 4 12 4 9.11 4 6.6 5.64 5.36 8.04
+                 2.34 8.36 0 10.91 0 14c0 3.31 2.69 6 6 6h13c2.76 0 5-2.24
+                 5-5 0-2.64-2.05-4.78-4.65-4.96zM14 13v4h-4v-4H7l5-5 5 5h-3z"/>
+      </svg>
+      <div class="dz-title">Drag &amp; drop an image here</div>
+      <div class="dz-sub">or click to browse · JPEG / PNG / WebP</div>
+      <div id="selected-file"></div>
+    </div>
+
+    <div class="field-row">
+      <input type="text" id="title-input" placeholder="Title (optional)" />
+      <button class="btn btn-primary" id="analyze-btn" disabled>
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2">
+          <circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/>
+        </svg>
+        Analyze
+      </button>
+    </div>
+
+    <!-- Result preview + spinner -->
+    <div id="result-preview">
+      <div class="spinner" id="spinner"></div>
+      <img id="preview-img" src="" alt="preview" />
+      <div class="result-info" id="result-info" style="display:none;">
+        <div class="result-label">Prediction</div>
+        <div class="result-value" id="res-pred"></div>
+        <div class="conf-row">
+          <span style="color:var(--muted);font-size:12px;">Confidence</span>
+          <span class="conf-pct" id="res-conf"></span>
+        </div>
+        <div class="progress-track">
+          <div class="progress-fill" id="res-bar" style="width:0%"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Gallery -->
+  <div class="gallery-header">
+    <div class="gallery-title">AI Inference Gallery</div>
+    <span class="count-badge" id="count-badge"></span>
+  </div>
+  <div class="image-grid" id="gallery"></div>
+</div>
+
+<!-- Toast -->
+<div id="toast"></div>
+
+<!-- Hidden canvas for preprocessing -->
+<canvas id="preprocess-canvas" width="32" height="32" style="display:none;"></canvas>
+
+<script>
+// ════════════════════════════════════════════════════════════
+// Config
+// ════════════════════════════════════════════════════════════
+
+// model.onnx を docs/ フォルダと同じリポジトリに配置した場合のパス
+// GitHub Pages: <user>.github.io/<repo>/model/model.onnx
+const MODEL_URL = './model/model.onnx';
+
+const CLASS_NAMES = [
+  'airplane','automobile','bird','cat','deer',
+  'dog','frog','horse','ship','truck'
+];
+
+// IndexedDB key
+const DB_NAME    = 'imageai_db';
+const DB_VERSION = 1;
+const STORE_NAME = 'inferences';
+
+// ════════════════════════════════════════════════════════════
+// State
+// ════════════════════════════════════════════════════════════
+let session  = null;   // ort.InferenceSession
+let db       = null;   // IDBDatabase
+let fileData = null;   // { file, dataURL }
+
+// ════════════════════════════════════════════════════════════
+// UI helpers
+// ════════════════════════════════════════════════════════════
+const $ = id => document.getElementById(id);
+
+function setModelStatus(state) {
+  const dot   = $('model-dot');
+  const label = $('model-label');
+  const note  = $('model-note');
+  dot.className = 'dot ' + state;
+  if (state === 'loading') {
+    label.textContent = 'Loading model…';
+    note.innerHTML = '<strong>CIFAR-10 ResNet18</strong> — モデルを読み込み中です…初回は少し時間がかかります。';
+  } else if (state === 'ready') {
+    label.textContent = 'ResNet18 · Ready';
+    note.innerHTML = '<strong>CIFAR-10 ResNet18</strong> — モデルが読み込まれました。画像をアップロードして推論を開始してください。';
+  } else {
+    label.textContent = 'Model error';
+    note.innerHTML = '<strong>エラー</strong> — model.onnx が読み込めませんでした。リポジトリに <code>model/model.onnx</code> を配置してください。';
+  }
+}
+
+function showToast(msg, durationMs = 2800) {
+  const t = $('toast');
+  t.textContent = msg;
+  t.classList.add('show');
+  setTimeout(() => t.classList.remove('show'), durationMs);
+}
+
+// ════════════════════════════════════════════════════════════
+// IndexedDB setup
+// ════════════════════════════════════════════════════════════
+function openDB() {
+  return new Promise((resolve, reject) => {
+    const req = indexedDB.open(DB_NAME, DB_VERSION);
+    req.onupgradeneeded = e => {
+      const store = e.target.result.createObjectStore(STORE_NAME, { keyPath: 'id', autoIncrement: true });
+      store.createIndex('created_at', 'created_at', { unique: false });
+    };
+    req.onsuccess = e => resolve(e.target.result);
+    req.onerror   = e => reject(e.target.error);
+  });
+}
+
+function dbAdd(record) {
+  return new Promise((resolve, reject) => {
+    const tx  = db.transaction(STORE_NAME, 'readwrite');
+    const req = tx.objectStore(STORE_NAME).add(record);
+    req.onsuccess = e => resolve(e.target.result);
+    req.onerror   = e => reject(e.target.error);
+  });
+}
+
+function dbGetAll() {
+  return new Promise((resolve, reject) => {
+    const tx    = db.transaction(STORE_NAME, 'readonly');
+    const req   = tx.objectStore(STORE_NAME).index('created_at').getAll();
+    req.onsuccess = e => resolve(e.target.result.reverse());
+    req.onerror   = e => reject(e.target.error);
+  });
+}
+
+function dbDelete(id) {
+  return new Promise((resolve, reject) => {
+    const tx  = db.transaction(STORE_NAME, 'readwrite');
+    const req = tx.objectStore(STORE_NAME).delete(id);
+    req.onsuccess = () => resolve();
+    req.onerror   = e => reject(e.target.error);
+  });
+}
+
+// ════════════════════════════════════════════════════════════
+// Image preprocessing (matches Python transform)
+//   1. Resize to 32×32 via canvas
+//   2. Normalize to [0,1] (ToTensor)
+//   3. GCN: (x - mean) / (std + 1e-6)
+// ════════════════════════════════════════════════════════════
+function preprocessImage(imgElement) {
+  const canvas = $('preprocess-canvas');
+  const ctx    = canvas.getContext('2d');
+  ctx.drawImage(imgElement, 0, 0, 32, 32);
+  const pixels = ctx.getImageData(0, 0, 32, 32).data; // RGBA uint8
+
+  // Build float32 CHW tensor [3, 32, 32]
+  const tensor = new Float32Array(3 * 32 * 32);
+  for (let i = 0; i < 32 * 32; i++) {
+    tensor[i]              = pixels[i * 4]     / 255.0; // R
+    tensor[i + 32*32]      = pixels[i * 4 + 1] / 255.0; // G
+    tensor[i + 2 * 32*32]  = pixels[i * 4 + 2] / 255.0; // B
+  }
+
+  // GCN normalization (same as Python gcn())
+  let sum = 0;
+  for (let i = 0; i < tensor.length; i++) sum += tensor[i];
+  const mean = sum / tensor.length;
+
+  let varSum = 0;
+  for (let i = 0; i < tensor.length; i++) varSum += (tensor[i] - mean) ** 2;
+  const std = Math.sqrt(varSum / tensor.length) + 1e-6;
+
+  for (let i = 0; i < tensor.length; i++) tensor[i] = (tensor[i] - mean) / std;
+
+  return tensor;
+}
+
+// ════════════════════════════════════════════════════════════
+// ONNX inference
+// ════════════════════════════════════════════════════════════
+async function runInference(imgElement) {
+  const floatData = preprocessImage(imgElement);
+  const inputTensor = new ort.Tensor('float32', floatData, [1, 3, 32, 32]);
+  const feeds = { input: inputTensor };
+  const results = await session.run(feeds);
+  const output  = results['output'].data; // Float32Array length 10
+
+  // Softmax
+  const maxLogit = Math.max(...output);
+  const exps  = Array.from(output).map(v => Math.exp(v - maxLogit));
+  const sumExp = exps.reduce((a, b) => a + b, 0);
+  const probs  = exps.map(v => v / sumExp);
+
+  const predIdx  = probs.indexOf(Math.max(...probs));
+  return {
+    prediction:  CLASS_NAMES[predIdx],
+    probability: probs[predIdx] * 100,
+  };
+}
+
+// ════════════════════════════════════════════════════════════
+// Gallery rendering
+// ════════════════════════════════════════════════════════════
+function formatDate(isoStr) {
+  const d = new Date(isoStr);
+  return d.toLocaleDateString('en-US', { month:'short', day:'numeric' })
+       + ' ' + d.toLocaleTimeString('en-US', { hour:'2-digit', minute:'2-digit' });
+}
+
+function renderCard(record) {
+  const pct = record.probability.toFixed(2);
+  return `
+    <div class="image-card" id="card-${record.id}">
+      <div class="img-wrapper">
+        <img src="${record.dataURL}" alt="${record.title || 'image'}" loading="lazy" />
+      </div>
+      <div class="card-body">
+        <div class="card-title-row">
+          <span class="card-title" title="${record.title || ''}">${record.title || '(no title)'}</span>
+          <span class="card-date">${formatDate(record.created_at)}</span>
+        </div>
+        <div class="pred-box">
+          <div class="pred-lbl">Prediction</div>
+          <div class="pred-val">${record.prediction}</div>
+        </div>
+        <div class="conf-box">
+          <div class="conf-info">
+            <span class="conf-ttl">Confidence</span>
+            <span class="conf-val">${pct}%</span>
+          </div>
+          <div class="progress-track">
+            <div class="progress-fill" style="width:${record.probability}%"></div>
+          </div>
+        </div>
+      </div>
+      <div class="card-actions">
+        <button class="btn btn-ghost" onclick="deleteRecord(${record.id})">Delete</button>
+      </div>
+    </div>`;
+}
+
+async function refreshGallery() {
+  const gallery = $('gallery');
+  const records = await dbGetAll();
+  $('count-badge').textContent = records.length > 0 ? `${records.length} image${records.length > 1 ? 's' : ''}` : '';
+  if (records.length === 0) {
+    gallery.innerHTML = `
+      <div class="empty-state">
+        <svg width="48" height="48" fill="none" stroke="#475569" stroke-width="1.5" viewBox="0 0 24 24">
+          <rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/>
+          <path d="m21 15-5-5L5 21"/>
+        </svg>
+        <p>No images analysed yet.<br/>Upload one above to get started.</p>
+      </div>`;
+    return;
+  }
+  gallery.innerHTML = records.map(renderCard).join('');
+}
+
+async function deleteRecord(id) {
+  await dbDelete(id);
+  await refreshGallery();
+  showToast('Deleted.');
+}
+
+// ════════════════════════════════════════════════════════════
+// File handling
+// ════════════════════════════════════════════════════════════
+function readFileAsDataURL(file) {
+  return new Promise((res, rej) => {
+    const reader = new FileReader();
+    reader.onload  = e => res(e.target.result);
+    reader.onerror = e => rej(e.target.error);
+    reader.readAsDataURL(file);
+  });
+}
+
+function loadImageFromURL(url) {
+  return new Promise((res, rej) => {
+    const img = new Image();
+    img.onload  = () => res(img);
+    img.onerror = rej;
+    img.src = url;
+  });
+}
+
+async function handleFile(file) {
+  if (!file || !file.type.startsWith('image/')) {
+    showToast('Please select an image file.');
+    return;
+  }
+  const dataURL = await readFileAsDataURL(file);
+  fileData = { file, dataURL };
+  $('selected-file').textContent = 'Selected: ' + file.name;
+  $('analyze-btn').disabled = (session === null);
+
+  // Show preview immediately
+  const preview = $('result-preview');
+  const prevImg = $('preview-img');
+  prevImg.src = dataURL;
+  $('result-info').style.display = 'none';
+  $('spinner').classList.remove('visible');
+  preview.classList.add('visible');
+}
+
+// ════════════════════════════════════════════════════════════
+// Analyze
+// ════════════════════════════════════════════════════════════
+async function analyze() {
+  if (!fileData || !session) return;
+
+  const btn = $('analyze-btn');
+  btn.disabled = true;
+  $('spinner').classList.add('visible');
+  $('result-info').style.display = 'none';
+
+  try {
+    const img  = await loadImageFromURL(fileData.dataURL);
+    const { prediction, probability } = await runInference(img);
+
+    // Show result in preview
+    $('res-pred').textContent = prediction;
+    $('res-conf').textContent = probability.toFixed(2) + '%';
+    $('res-bar').style.width  = probability + '%';
+    $('spinner').classList.remove('visible');
+    $('result-info').style.display = 'block';
+
+    // Save to IndexedDB
+    const record = {
+      title:       $('title-input').value.trim() || fileData.file.name,
+      dataURL:     fileData.dataURL,
+      prediction,
+      probability,
+      created_at:  new Date().toISOString(),
+    };
+    await dbAdd(record);
+    await refreshGallery();
+    showToast(`Analyzed: ${prediction} (${probability.toFixed(1)}%)`);
+
+    // Reset form
+    $('title-input').value = '';
+    $('file-input').value  = '';
+    $('selected-file').textContent = '';
+    fileData = null;
+    btn.disabled = (session === null);
+  } catch (err) {
+    console.error(err);
+    $('spinner').classList.remove('visible');
+    showToast('Inference failed. See console for details.', 4000);
+    btn.disabled = false;
+  }
+}
+
+// ════════════════════════════════════════════════════════════
+// Init
+// ════════════════════════════════════════════════════════════
+async function init() {
+  // Open IndexedDB
+  db = await openDB();
+  await refreshGallery();
+
+  // Load ONNX model
+  setModelStatus('loading');
+  try {
+    // Use WASM backend (works in all modern browsers without GPU)
+    ort.env.wasm.wasmPaths = 'https://cdn.jsdelivr.net/npm/onnxruntime-web@1.19.2/dist/';
+    session = await ort.InferenceSession.create(MODEL_URL, {
+      executionProviders: ['wasm'],
+    });
+    setModelStatus('ready');
+    if (fileData) $('analyze-btn').disabled = false;
+  } catch (err) {
+    console.error('Model load failed:', err);
+    setModelStatus('error');
+  }
+
+  // Dropzone events
+  const dz        = $('dropzone');
+  const fileInput = $('file-input');
+
+  dz.addEventListener('dragover', e => { e.preventDefault(); dz.classList.add('dragover'); });
+  dz.addEventListener('dragleave', ()  => dz.classList.remove('dragover'));
+  dz.addEventListener('drop', e => {
+    e.preventDefault();
+    dz.classList.remove('dragover');
+    const f = e.dataTransfer.files[0];
+    if (f) handleFile(f);
+  });
+  fileInput.addEventListener('change', () => {
+    if (fileInput.files[0]) handleFile(fileInput.files[0]);
+  });
+
+  $('analyze-btn').addEventListener('click', analyze);
+}
+
+document.addEventListener('DOMContentLoaded', init);
+</script>
+</body>
+</html>

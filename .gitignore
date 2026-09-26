@@ -1,3 +1,15 @@
+# ── Python / Django ────────────────────────────────────────
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+*.pth
+db.sqlite3
+media/
+*.env
+.env
+
+# ── Unity (元の設定) ────────────────────────────────────────
 # This .gitignore file should be placed at the root of your Unity project directory
 #
 # Get latest from https://github.com/github/gitignore/blob/main/Unity.gitignore
