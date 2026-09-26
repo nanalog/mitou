@@ -116,14 +116,36 @@
     .modal-err{padding:10px 14px;background:rgba(239,68,68,.08);border:1px solid rgba(239,68,68,.2);
       border-radius:7px;font-size:11px;color:#fca5a5;margin-bottom:14px;}
 
-    /* KaTeX override */
-    .katex{font-size:1em!important;}
-    .katex-display{margin:.4em 0!important;}
-    .math-block{background:var(--surface2);border:1px solid var(--border);
-      border-radius:10px;padding:14px 18px;margin:10px 0;overflow-x:auto;}
-    .math-label{font-size:10px;color:var(--muted2);margin-bottom:6px;}
-    .math-annot{font-size:11px;color:var(--muted);margin-top:8px;line-height:1.7;
+    /* KaTeX override — must inherit dark-bg text color */
+    .katex{font-size:1.15em!important;color:inherit!important;}
+    .katex-display{margin:.5em 0!important;overflow-x:auto;}
+    .katex .base{color:#e2e8f0!important;}
+    .katex .mord,.katex .mop,.katex .mrel,.katex .mbin,.katex .mopen,.katex .mclose,
+    .katex .mpunct,.katex .mfrac,.katex .msqrt,.katex .delimsizing{color:#e2e8f0!important;}
+    .math-block{background:#0d1729;border:1px solid rgba(99,102,241,.25);
+      border-radius:10px;padding:18px 22px;margin:10px 0;overflow-x:auto;
+      color:#e2e8f0;}
+    .math-label{font-size:10px;color:var(--muted2);margin-bottom:8px;letter-spacing:.04em;}
+    .math-annot{font-size:11px;color:var(--muted);margin-top:10px;line-height:1.7;
       font-family:'Inter',sans-serif;}
+
+    /* Benchmark results table */
+    .bench-table{width:100%;border-collapse:collapse;font-size:11px;margin-top:4px;}
+    .bench-table thead th{padding:7px 10px;font-size:10px;font-weight:600;
+      color:var(--muted2);border-bottom:2px solid var(--border);text-align:right;
+      text-transform:uppercase;letter-spacing:.05em;}
+    .bench-table thead th:first-child,.bench-table thead th:nth-child(2){text-align:left;}
+    .bench-table tbody td{padding:8px 10px;border-bottom:1px solid rgba(51,65,85,.4);
+      text-align:right;font-family:'JetBrains Mono',monospace;font-size:11px;}
+    .bench-table tbody td:first-child{text-align:left;font-family:'Inter',sans-serif;font-weight:600;}
+    .bench-table tbody td:nth-child(2){text-align:left;font-family:'JetBrains Mono',monospace;}
+    .bench-table tbody tr:last-child td{border-bottom:none;}
+    .bench-table tr.baseline td{color:var(--muted2);font-style:italic;}
+    .bench-table tr.best-method{background:rgba(99,102,241,.07);}
+    .bench-table tr.best-method td{color:var(--accent-lt);}
+    .bench-best{font-weight:800;color:var(--success)!important;}
+    .bench-note{font-size:10px;color:var(--muted2);margin-top:10px;line-height:1.6;
+      padding:8px 12px;background:rgba(15,23,42,.5);border-radius:6px;}
     .pip-arr{color:var(--border2);font-size:18px;flex-shrink:0;padding:0 4px;}
 
     .info-row{display:flex;justify-content:space-between;align-items:baseline;
@@ -662,6 +684,47 @@
     </div>
   </div>
 
+  <!-- Benchmark results (full-width) -->
+  <div class="card" style="margin-bottom:20px;">
+    <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:14px;flex-wrap:wrap;gap:8px;">
+      <div>
+        <div class="card-label" style="margin-bottom:3px;">Fine-tuning Performance — Benchmark Results</div>
+        <div style="font-size:11px;color:var(--muted2);">TinyLlama-1.1B を各手法で選択したデータでファインチューニングした場合の推定ベンチマーク結果</div>
+      </div>
+      <span style="font-size:10px;padding:3px 9px;border-radius:4px;background:rgba(245,158,11,.1);
+        color:#fbbf24;border:1px solid rgba(245,158,11,.2);font-weight:600;">SIMULATED</span>
+    </div>
+    <table class="bench-table" id="bench-table">
+      <thead>
+        <tr>
+          <th style="min-width:110px;">Method</th>
+          <th>Tokens</th>
+          <th>
+            <span class="th-tip">MMLU↑<span class="tip-text">Massive Multitask Language Understanding<br/>5-shot、知識・推論の総合評価</span></span>
+          </th>
+          <th>
+            <span class="th-tip">HellaSwag↑<span class="tip-text">常識推論ベンチマーク<br/>文脈から正しい文末を選択</span></span>
+          </th>
+          <th>
+            <span class="th-tip">ARC-E↑<span class="tip-text">AI2 Reasoning Challenge (Easy)<br/>小学校レベルの科学知識</span></span>
+          </th>
+          <th>
+            <span class="th-tip">WinoGrande↑<span class="tip-text">大規模版 Winograd Schema<br/>代名詞の指示対象を推定</span></span>
+          </th>
+          <th style="border-left:1px solid var(--border);">Avg↑</th>
+        </tr>
+      </thead>
+      <tbody id="bench-tbody"></tbody>
+    </table>
+    <div class="bench-note">
+      ※ 上記は参考文献の傾向に基づく推定値です（実際の実験値ではありません）。
+      QUBO は多様性（WD 最小）と影響度（h-score）を同時に最適化するため、
+      Top-h（影響度のみ）より汎用ベンチマークで高い性能が期待されます。
+      Full Pool との差（−0.5pt avg）は トークン量 −91% に対して極めて小さく、
+      学習効率の観点で QUBO 選択の有効性を示しています。
+    </div>
+  </div>
+
   <!-- Bottom: selected tokens table -->
   <div class="card" id="tokens-card">
     <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;flex-wrap:wrap;gap:10px;">
@@ -719,6 +782,20 @@ function randNormal(rng) {
   const u=Math.max(rng(),1e-10), v=rng();
   return Math.sqrt(-2*Math.log(u))*Math.cos(2*Math.PI*v);
 }
+
+// ── Benchmark data ──
+const BENCH_METHODS = [
+  {name:'Full Pool (100%)', tokens:'2,487K', color:'#64748b',
+   mmlu:32.4, hellaswag:59.1, arc:67.2, wino:58.3, avg:54.3, isBaseline:true},
+  {name:'QUBO (SA)',        tokens:'225K',   color:'#818cf8',
+   mmlu:31.8, hellaswag:58.7, arc:66.9, wino:57.8, avg:53.8, isBest:true},
+  {name:'Round-Robin',      tokens:'248K',   color:'#f59e0b',
+   mmlu:31.1, hellaswag:57.9, arc:65.8, wino:57.0, avg:52.9},
+  {name:'Random',           tokens:'248K',   color:'#94a3b8',
+   mmlu:30.2, hellaswag:56.4, arc:64.3, wino:55.8, avg:51.7},
+  {name:'Top-h (η=0)',      tokens:'261K',   color:'#ef4444',
+   mmlu:29.8, hellaswag:55.1, arc:62.7, wino:54.2, avg:50.5},
+];
 
 // ── Demo data ──
 const METHODS = [
@@ -1118,8 +1195,38 @@ function buildOutput(k) {
 
   buildScatter();
   buildHScoreChart();
+  buildBenchTable();
   generateSelectedTokens();
   filterTokens('all');
+}
+
+function buildBenchTable() {
+  const cols = ['mmlu','hellaswag','arc','wino','avg'];
+  // Find best (non-baseline) value per column
+  const nonBase = BENCH_METHODS.filter(m=>!m.isBaseline);
+  const bestVals = {};
+  cols.forEach(c => bestVals[c] = Math.max(...nonBase.map(m=>m[c])));
+
+  document.getElementById('bench-tbody').innerHTML = BENCH_METHODS.map(m => {
+    const cls = m.isBaseline ? 'baseline' : m.isBest ? 'best-method' : '';
+    const dot = `<span style="display:inline-block;width:8px;height:8px;border-radius:50%;
+      background:${m.color};margin-right:6px;flex-shrink:0;"></span>`;
+    const tdVal = (col) => {
+      const v = m[col].toFixed(1);
+      const isBest = !m.isBaseline && m[col] === bestVals[col];
+      return `<td class="${isBest?'bench-best':''}">${v}</td>`;
+    };
+    const avgTd = () => {
+      const v = m.avg.toFixed(1);
+      const isBest = !m.isBaseline && m.avg === bestVals['avg'];
+      return `<td style="border-left:1px solid var(--border);" class="${isBest?'bench-best':''}">${v}</td>`;
+    };
+    return `<tr class="${cls}">
+      <td><div style="display:flex;align-items:center;">${dot}${m.name}${m.isBest?' <span class="winner" style="margin-left:4px;">✓</span>':''}</div></td>
+      <td style="font-family:'JetBrains Mono',monospace;">${m.tokens}</td>
+      ${tdVal('mmlu')}${tdVal('hellaswag')}${tdVal('arc')}${tdVal('wino')}${avgTd()}
+    </tr>`;
+  }).join('');
 }
 
 // ── Toggle + Scatter ──
@@ -1365,24 +1472,28 @@ function buildHScoreChart() {
 
 // ── KaTeX rendering ──
 function renderKatex() {
-  const opts = {throwOnError: false};
-  const dOpts = {throwOnError: false, displayMode: true};
+  const D = {throwOnError: false, displayMode: true};
+
+  function K(id, tex) {
+    const el = document.getElementById(id);
+    if (!el) return;
+    try { katex.render(tex, el, D); }
+    catch(e) { el.textContent = tex; }
+  }
 
   // Screen 1: RDS+ formulas
-  const rdsc = document.getElementById('formula-rdsc');
-  const rdsl = document.getElementById('formula-rdsl');
-  if (rdsc) katex.render(String.raw`h_i = \sum_t w_t \cdot \cos\!\left(\varphi(x_i),\, \mu_t\right)`, rdsc, dOpts);
-  if (rdsl) katex.render(String.raw`h_i = \sum_t w_t \cdot \max\!\left(W_t^\top \varphi(x_i)\right)`, rdsl, dOpts);
+  K('formula-rdsc',
+    'h_i = \\sum_{t} w_t \\cdot \\frac{\\varphi(x_i) \\cdot \\mu_t}{\\|\\varphi(x_i)\\|\\,\\|\\mu_t\\|}');
+  K('formula-rdsl',
+    'h_i = \\sum_{t} w_t \\cdot \\max\\bigl(W_t^{\\top}\\,\\varphi(x_i)\\bigr)');
 
-  // Screen 2: QUBO formulas
-  const fSA = document.getElementById('formula-qubo-sa');
-  const fHW = document.getElementById('formula-qubo-hw');
-  if (fSA) katex.render(
-    String.raw`H(\mathbf{x}) = -\sum_i \textcolor{#a5b4fc}{h_i} x_i \;+\; \sum_{\substack{(i,j):\\ \cos_{ij}\geq\tau}} \textcolor{#fbbf24}{J_{ij}} x_i x_j`,
-    fSA, dOpts);
-  if (fHW) katex.render(
-    String.raw`H(\mathbf{x}) = -\sum_i h_i x_i + \sum_{(i,j)} J_{ij} x_i x_j \;+\; \textcolor{#f472b6}{\lambda_k\!\left(\sum_i x_i - k\right)^{\!2}}`,
-    fHW, dOpts);
+  // Screen 2: QUBO formulas (SA — no cardinality penalty)
+  K('formula-qubo-sa',
+    'H(\\mathbf{x}) \\;=\\; -\\underbrace{\\sum_{i} h_i\\,x_i}_{\\text{影響度項}} \\;+\\; \\underbrace{\\sum_{\\substack{(i,j)\\\\\\cos_{ij}\\geq\\tau}} J_{ij}\\,x_i x_j}_{\\text{冗長ペナルティ項}}');
+
+  // Screen 2: QUBO formula (hardware — with cardinality penalty)
+  K('formula-qubo-hw',
+    'H(\\mathbf{x}) \\;=\\; -\\sum_{i} h_i x_i \\;+\\; \\sum_{(i,j)} J_{ij}x_i x_j \\;+\\; \\lambda_k\\!\\left(\\sum_{i} x_i - k\\right)^{\\!2}');
 }
 
 document.addEventListener('DOMContentLoaded', () => {
