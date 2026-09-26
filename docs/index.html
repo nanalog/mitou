@@ -740,10 +740,10 @@
 <div class="container">
 
   <!-- Top row: scatter + metrics -->
-  <div class="s3-grid" style="margin-bottom:20px;">
+  <div class="s3-grid" style="margin-bottom:20px;align-items:stretch;">
 
     <!-- Left: scatter -->
-    <div class="card" style="padding:16px 18px;">
+    <div class="card" style="padding:16px 18px;display:flex;flex-direction:column;">
       <div class="scatter-header" style="margin-bottom:6px;">
         <div>
           <span class="scatter-title" style="font-size:13px;">Embedding Space (PCA 2D)</span>
@@ -754,34 +754,37 @@
         <div class="toggle-row" id="toggle-row"></div>
       </div>
 
+      <!-- 説明文 -->
+      <div style="font-size:11px;color:var(--muted);line-height:1.6;margin-bottom:8px;
+        padding:8px 12px;background:var(--surface2);border-radius:7px;border:1px solid var(--border);">
+        <strong>各色の薄い点</strong>はプール全体（5,000 samples）、<strong>濃い点</strong>は各選択手法で選ばれたサンプル。
+        QUBO は全クラスタに均一に分布し（WD 最小）、Top-h は重心付近に集中（高冗長性）。
+      </div>
+
       <!-- PCA 寄与率バー -->
-      <div style="display:flex;gap:14px;align-items:center;margin-bottom:8px;
-        padding:7px 10px;background:var(--surface2);border-radius:7px;border:1px solid var(--border);font-size:10px;">
+      <div style="display:flex;gap:10px;align-items:center;margin-bottom:8px;
+        padding:6px 10px;background:var(--surface2);border-radius:7px;border:1px solid var(--border);font-size:10px;flex-wrap:wrap;">
         <span style="color:var(--muted2);white-space:nowrap;font-weight:600;">Explained Var.</span>
-        <div style="display:flex;align-items:center;gap:5px;flex:1;">
+        <div style="display:flex;align-items:center;gap:5px;">
           <span style="color:var(--muted);white-space:nowrap;">PC1</span>
-          <div style="flex:1;height:5px;background:var(--border);border-radius:3px;max-width:90px;">
+          <div style="width:72px;height:5px;background:var(--border);border-radius:3px;">
             <div style="height:100%;width:62%;background:#6366f1;border-radius:3px;"></div>
           </div>
           <span style="font-family:'JetBrains Mono',monospace;color:var(--accent);font-weight:700;">23.4%</span>
         </div>
-        <div style="display:flex;align-items:center;gap:5px;flex:1;">
+        <div style="display:flex;align-items:center;gap:5px;">
           <span style="color:var(--muted);white-space:nowrap;">PC2</span>
-          <div style="flex:1;height:5px;background:var(--border);border-radius:3px;max-width:70px;">
+          <div style="width:56px;height:5px;background:var(--border);border-radius:3px;">
             <div style="height:100%;width:47%;background:#a855f7;border-radius:3px;"></div>
           </div>
           <span style="font-family:'JetBrains Mono',monospace;color:#a855f7;font-weight:700;">14.7%</span>
         </div>
-        <div style="border-left:1px solid var(--border);padding-left:12px;white-space:nowrap;">
-          <span style="color:var(--muted2);">累計 </span>
-          <span style="font-family:'JetBrains Mono',monospace;color:var(--muted);font-weight:700;">38.1%</span>
-        </div>
-        <div style="border-left:1px solid var(--border);padding-left:12px;white-space:nowrap;font-size:9px;color:var(--muted2);line-height:1.4;">
-          薄い点 = Pool (all)<br/>濃い点 = 選択サンプル
-        </div>
+        <span style="color:var(--border2);">|</span>
+        <span style="color:var(--muted2);">累計 <strong style="color:var(--muted);font-family:'JetBrains Mono',monospace;">38.1%</strong></span>
       </div>
 
-      <div style="height:380px;position:relative;"><canvas id="scatter-chart"></canvas></div>
+      <!-- チャート：flex:1 で残り高さをすべて埋める -->
+      <div style="flex:1;min-height:260px;position:relative;"><canvas id="scatter-chart"></canvas></div>
       <div class="legend-row" id="scatter-legend" style="margin-top:6px;"></div>
     </div>
 
