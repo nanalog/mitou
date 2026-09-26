@@ -8,6 +8,8 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet" />
   <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.16.9/katex.min.css" />
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.16.9/katex.min.js"></script>
   <style>
     :root {
       --bg:#0f172a; --surface:#1e293b; --surface2:#162032; --border:#334155;
@@ -41,22 +43,87 @@
     .card-label{font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.08em;
       color:var(--muted2);margin-bottom:12px;}
 
+    /* ── Page title ── */
+    .page-title-section{text-align:center;margin-bottom:24px;padding:28px 20px 20px;}
+    .page-title-section h1{font-size:28px;font-weight:800;line-height:1.2;margin-bottom:8px;
+      background:linear-gradient(120deg,#818cf8,#c084fc,#34d399);
+      -webkit-background-clip:text;-webkit-text-fill-color:transparent;}
+    .page-title-section p{font-size:13px;color:var(--muted);max-width:600px;margin:0 auto;}
+
     /* ── Screen 1 ── */
     .grid2{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:16px;}
     .grid3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:16px;margin-bottom:16px;}
     @media(max-width:720px){.grid2,.grid3{grid-template-columns:1fr;}}
 
-    /* Pipeline flow */
-    .pipeline{display:flex;align-items:center;gap:0;overflow-x:auto;margin-bottom:20px;
-      padding:16px 20px;background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);}
-    .pip-box{flex-shrink:0;padding:8px 14px;border-radius:8px;text-align:center;min-width:110px;}
-    .pip-box .pb-title{font-size:11px;font-weight:700;margin-bottom:3px;}
-    .pip-box .pb-sub{font-size:10px;color:var(--muted2);}
-    .pip-box.pool{background:rgba(100,116,139,.1);border:1px solid #475569;}
-    .pip-box.embed{background:rgba(99,102,241,.1);border:1px solid rgba(99,102,241,.3);}
-    .pip-box.score{background:rgba(16,185,129,.1);border:1px solid rgba(16,185,129,.3);}
-    .pip-box.qubo{background:rgba(245,158,11,.1);border:1px solid rgba(245,158,11,.3);}
-    .pip-box.sel{background:rgba(168,85,247,.1);border:1px solid rgba(168,85,247,.3);}
+    /* ── Pipeline flow with token counts ── */
+    .pipeline-section{margin-bottom:24px;}
+    .pipeline-section h2{font-size:12px;font-weight:700;color:var(--muted2);
+      text-transform:uppercase;letter-spacing:.08em;margin-bottom:12px;}
+    .pipeline-flow{display:flex;align-items:stretch;overflow-x:auto;gap:0;
+      background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);}
+    .pip-stage{flex:1;min-width:140px;padding:16px 14px;border-right:1px solid var(--border);
+      display:flex;flex-direction:column;gap:4px;}
+    .pip-stage:last-child{border-right:none;}
+    .pip-stage-hdr{font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;
+      margin-bottom:4px;}
+    .pip-stage-name{font-size:12px;font-weight:700;margin-bottom:2px;}
+    .pip-stage-detail{font-family:'JetBrains Mono',monospace;font-size:10px;color:var(--muted);line-height:1.6;}
+    .pip-tok{font-size:13px;font-weight:800;font-family:'JetBrains Mono',monospace;margin-top:6px;}
+    .pip-tok-sub{font-size:9px;color:var(--muted2);margin-top:1px;}
+    .pip-reduction{display:inline-block;padding:1px 6px;border-radius:3px;font-size:10px;
+      font-weight:700;margin-top:4px;}
+    .pip-arr-cell{display:flex;align-items:center;justify-content:center;padding:0 6px;
+      color:var(--border2);font-size:20px;flex-shrink:0;}
+    /* reduction bar under pipeline */
+    .reduction-bar{display:flex;align-items:center;gap:10px;margin-top:8px;
+      padding:10px 16px;background:rgba(16,185,129,.04);border:1px solid rgba(16,185,129,.12);
+      border-radius:8px;font-size:11px;}
+    .rb-label{color:var(--muted);flex-shrink:0;}
+    .rb-track{flex:1;height:8px;background:var(--border);border-radius:4px;overflow:hidden;}
+    .rb-fill{height:100%;border-radius:4px;
+      background:linear-gradient(90deg,#ef4444,#f59e0b,#10b981);}
+    .rb-pct{color:var(--success);font-weight:700;font-family:'JetBrains Mono',monospace;flex-shrink:0;}
+
+    /* ── API token input ── */
+    .api-token-wrap{margin-top:12px;display:none;}
+    .api-token-wrap.show{display:block;}
+    .api-token-inner{display:flex;gap:8px;margin-top:6px;}
+    .api-token-input{flex:1;padding:8px 12px;border-radius:7px;border:1px solid var(--border2);
+      background:var(--surface2);color:var(--text);font-size:12px;font-family:'JetBrains Mono',monospace;
+      outline:none;}
+    .api-token-input:focus{border-color:var(--accent);}
+    .api-token-input::placeholder{color:var(--muted2);}
+    .api-set-btn{padding:8px 14px;border-radius:7px;border:none;background:var(--accent);
+      color:#fff;font-size:11px;font-weight:700;font-family:'Inter',sans-serif;cursor:pointer;}
+    .api-status{margin-top:6px;font-size:11px;padding:5px 10px;border-radius:5px;}
+    .api-status.ok{background:rgba(16,185,129,.1);color:var(--success);}
+    .api-status.none{background:rgba(100,116,139,.08);color:var(--muted2);}
+
+    /* ── Code modal ── */
+    .modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,.6);z-index:200;
+      display:flex;align-items:center;justify-content:center;padding:20px;}
+    .modal-overlay.hidden{display:none;}
+    .modal-box{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);
+      max-width:640px;width:100%;max-height:80vh;overflow:auto;}
+    .modal-hdr{display:flex;justify-content:space-between;align-items:center;
+      padding:16px 20px;border-bottom:1px solid var(--border);}
+    .modal-hdr h3{font-size:14px;font-weight:700;}
+    .modal-close{background:none;border:none;color:var(--muted);font-size:18px;cursor:pointer;}
+    .modal-body{padding:20px;}
+    .modal-body pre{background:var(--surface2);border:1px solid var(--border);
+      border-radius:8px;padding:14px;font-size:11px;line-height:1.7;overflow-x:auto;
+      font-family:'JetBrains Mono',monospace;color:var(--muted);}
+    .modal-err{padding:10px 14px;background:rgba(239,68,68,.08);border:1px solid rgba(239,68,68,.2);
+      border-radius:7px;font-size:11px;color:#fca5a5;margin-bottom:14px;}
+
+    /* KaTeX override */
+    .katex{font-size:1em!important;}
+    .katex-display{margin:.4em 0!important;}
+    .math-block{background:var(--surface2);border:1px solid var(--border);
+      border-radius:10px;padding:14px 18px;margin:10px 0;overflow-x:auto;}
+    .math-label{font-size:10px;color:var(--muted2);margin-bottom:6px;}
+    .math-annot{font-size:11px;color:var(--muted);margin-top:8px;line-height:1.7;
+      font-family:'Inter',sans-serif;}
     .pip-arr{color:var(--border2);font-size:18px;flex-shrink:0;padding:0 4px;}
 
     .info-row{display:flex;justify-content:space-between;align-items:baseline;
@@ -245,21 +312,83 @@
   </div>
 </nav>
 
+<!-- Code modal -->
+<div class="modal-overlay hidden" id="code-modal">
+  <div class="modal-box">
+    <div class="modal-hdr">
+      <h3 id="modal-title">Python 実行コード</h3>
+      <button class="modal-close" onclick="document.getElementById('code-modal').classList.add('hidden')">✕</button>
+    </div>
+    <div class="modal-body">
+      <div class="modal-err" id="modal-err"></div>
+      <pre id="modal-code"></pre>
+    </div>
+  </div>
+</div>
+
 <!-- ═══════════════════════════ SCREEN 1: Input ═══════════════════════════ -->
 <div id="screen-1" class="screen active">
 <div class="container">
 
-  <!-- Pipeline overview -->
-  <div class="pipeline">
-    <div class="pip-box pool"><div class="pb-title" style="color:#94a3b8;">Pool</div><div class="pb-sub">N=5,000 samples</div></div>
-    <div class="pip-arr">→</div>
-    <div class="pip-box embed"><div class="pb-title" style="color:#818cf8;">EmbeddingExtractor</div><div class="pb-sub">順伝搬 φ(x)∈ℝ²⁰⁴⁸</div></div>
-    <div class="pip-arr">→</div>
-    <div class="pip-box score"><div class="pb-title" style="color:#34d399;">RDS+ Scorer</div><div class="pb-sub">影響度 hᵢ∈[0,1]</div></div>
-    <div class="pip-arr">→</div>
-    <div class="pip-box qubo"><div class="pb-title" style="color:#fbbf24;">QUBO Builder</div><div class="pb-sub">疎J行列 |τ-pairs|≈2M</div></div>
-    <div class="pip-arr">→</div>
-    <div class="pip-box sel"><div class="pb-title" style="color:#c084fc;">SA / Annealer</div><div class="pb-sub">x*∈{0,1}ᴺ, Σxᵢ=k</div></div>
+  <!-- Page title -->
+  <div class="page-title-section">
+    <h1>QUBO-Based Training Data Selection</h1>
+    <p>RDS+ × QUBO × SA / 量子アニーラによる LLM 学習データ最適化パイプライン</p>
+  </div>
+
+  <!-- Pipeline flow with token counts -->
+  <div class="pipeline-section">
+    <h2>処理フローと学習トークン削減</h2>
+    <div class="pipeline-flow">
+      <div class="pip-stage">
+        <div class="pip-stage-hdr" style="color:#64748b;">① Input Pool</div>
+        <div class="pip-stage-name">Training Pool</div>
+        <div class="pip-stage-detail">N = 5,000 samples<br/>4 tasks (Alpaca / Dolly<br/>FLAN / WizardLM)</div>
+        <div class="pip-tok" style="color:#94a3b8;">2,487,320</div>
+        <div class="pip-tok-sub">tokens (100%)</div>
+      </div>
+      <div class="pip-arr-cell">→</div>
+      <div class="pip-stage">
+        <div class="pip-stage-hdr" style="color:#818cf8;">② Embedding</div>
+        <div class="pip-stage-name">EmbeddingExtractor</div>
+        <div class="pip-stage-detail">φ(x) ∈ ℝ²⁰⁴⁸<br/>mean-pool (attn-masked)<br/>順伝搬のみ O(N)</div>
+        <div class="pip-tok" style="color:#818cf8;">2,487,320</div>
+        <div class="pip-tok-sub">tokens (削減なし)</div>
+        <div class="pip-reduction" style="background:rgba(99,102,241,.1);color:#818cf8;">埋め込み抽出</div>
+      </div>
+      <div class="pip-arr-cell">→</div>
+      <div class="pip-stage">
+        <div class="pip-stage-hdr" style="color:#34d399;">③ RDS+ Scoring</div>
+        <div class="pip-stage-name">Influence Scorer</div>
+        <div class="pip-stage-detail">hᵢ = Σₜ wₜ·cos(φ(xᵢ),μₜ)<br/>全件スコアリング O(N)<br/>→ Top-M 候補に絞込</div>
+        <div class="pip-tok" style="color:#34d399;">~400,000</div>
+        <div class="pip-tok-sub">tokens (Top-M≈800)</div>
+        <div class="pip-reduction" style="background:rgba(16,185,129,.1);color:#34d399;">▼ −84%</div>
+      </div>
+      <div class="pip-arr-cell">→</div>
+      <div class="pip-stage">
+        <div class="pip-stage-hdr" style="color:#fbbf24;">④ QUBO Build</div>
+        <div class="pip-stage-name">QUBO Builder</div>
+        <div class="pip-stage-detail">H(x)=−Σhᵢxᵢ+ΣJᵢⱼxᵢxⱼ<br/>疎J行列 τ=0.85<br/>|E_τ| ≈ 2M edges (0.06%)</div>
+        <div class="pip-tok" style="color:#fbbf24;">~400,000</div>
+        <div class="pip-tok-sub">tokens (QUBO 入力)</div>
+        <div class="pip-reduction" style="background:rgba(245,158,11,.1);color:#fbbf24;">QUBO 構築</div>
+      </div>
+      <div class="pip-arr-cell">→</div>
+      <div class="pip-stage">
+        <div class="pip-stage-hdr" style="color:#c084fc;">⑤ Annealing</div>
+        <div class="pip-stage-name">SA / Amplify / D-Wave</div>
+        <div class="pip-stage-detail">x* ∈ {0,1}ᴺ, Σxᵢ = k<br/>swap近傍 (SA)<br/>or QUBO ペナルティ (実機)</div>
+        <div class="pip-tok" style="color:#10b981;">~224,800</div>
+        <div class="pip-tok-sub">tokens (k=500 selected)</div>
+        <div class="pip-reduction" style="background:rgba(16,185,129,.15);color:#10b981;font-size:12px;">▼ −91%</div>
+      </div>
+    </div>
+    <div class="reduction-bar">
+      <span class="rb-label">トークン削減：2,487K → 225K</span>
+      <div class="rb-track"><div class="rb-fill" style="width:9%;"></div></div>
+      <span class="rb-pct">−91.0%</span>
+    </div>
   </div>
 
   <div class="grid2">
@@ -278,16 +407,25 @@
     <!-- RDS+ Scorer -->
     <div class="card">
       <div class="card-label">RDS+ 影響度スコア (forward-pass only)</div>
-      <div style="font-size:11px;color:var(--muted);line-height:1.7;margin-bottom:8px;">
+      <div style="font-size:11px;color:var(--muted);line-height:1.7;margin-bottom:10px;">
         勾配不要。順伝搬のみでタスクごとの重みづけスコアを推定します。<br/>
-        各サンプルのペナルティマテ層埋め込み φ(xᵢ) をタスク重心 μₜ と比較。
+        各サンプルの最終隠れ層埋め込み <em>φ(x<sub>i</sub>)</em> をタスク重心 <em>μ<sub>t</sub></em> と比較。
       </div>
-      <div class="formula-box">
-        <span class="f-hi">hᵢ</span> = Σₜ <span class="f-h">wₜ</span> · cos(<span class="f-hi">φ(xᵢ)</span>, <span class="f-h">μₜ</span>)<br/>
-        <span class="f-comment">— centroid mode: タスク重心との余弦類似度</span><br/><br/>
-        <span class="f-hi">hᵢ</span> = Σₜ <span class="f-h">wₜ</span> · max(<span class="f-j">Wₜᵀ φ(xᵢ)</span>)<br/>
-        <span class="f-comment">— linear mode: 最終層重み行列 Wₜ との内積最大</span><br/><br/>
-        <span class="f-comment">重みモード：uniform / inv_freq / inv_loss / custom</span>
+      <div class="math-block">
+        <div class="math-label">Centroid mode（デフォルト）</div>
+        <div id="formula-rdsc"></div>
+        <div class="math-annot">μₜ：タスク t のサンプル埋め込みの平均ベクトル</div>
+      </div>
+      <div class="math-block">
+        <div class="math-label">Linear mode（最終層重み行列使用）</div>
+        <div id="formula-rdsl"></div>
+        <div class="math-annot">W_t：タスク t に対応する出力層重み行列の行</div>
+      </div>
+      <div style="font-size:10px;color:var(--muted2);margin-top:6px;">
+        重みモード：<code style="background:rgba(99,102,241,.1);padding:1px 5px;border-radius:3px;">uniform</code>
+        <code style="background:rgba(99,102,241,.1);padding:1px 5px;border-radius:3px;margin-left:4px;">inv_freq</code>
+        <code style="background:rgba(99,102,241,.1);padding:1px 5px;border-radius:3px;margin-left:4px;">inv_loss</code>
+        <code style="background:rgba(99,102,241,.1);padding:1px 5px;border-radius:3px;margin-left:4px;">custom</code>
       </div>
     </div>
   </div>
@@ -367,6 +505,18 @@
         基数制約 Σxᵢ=k をスワップ移動で厳密に保持。λₖ ペナルティ不要。
         A100×1枚で N≤100K, k≤10K まで対応可能。
       </div>
+
+      <!-- API token input (shown for Amplify / D-Wave) -->
+      <div class="api-token-wrap" id="api-token-wrap">
+        <div class="card-label" style="margin-top:14px;margin-bottom:4px;">API Token（実機アクセス）</div>
+        <div class="api-token-inner">
+          <input type="password" class="api-token-input" id="api-token-input"
+            placeholder="Paste your API token here…" />
+          <button class="api-set-btn" onclick="saveApiToken()">Set</button>
+        </div>
+        <div class="api-status none" id="api-status">Token 未設定 — シミュレーションで実行</div>
+      </div>
+
       <div class="card-label" style="margin-top:16px;">QUBO 制約</div>
       <div class="info-row"><span class="ik">λ_tok（トークン予算）</span><span class="iv" style="color:var(--muted2);">off</span></div>
       <div class="info-row"><span class="ik">λ_task（タスク下限）</span><span class="iv" style="color:var(--muted2);">off</span></div>
@@ -392,32 +542,30 @@
   <div class="qubo-panel" id="qubo-panel">
     <h3>QUBO 目的関数 <span id="backend-badge" class="badge-sa">SA</span><span id="sim-badge" style="display:none;" class="badge-sim">Simulated as SA</span></h3>
 
-    <div class="qf-main" id="qf-main">
-      H(x) = −<span class="qf-h">Σᵢ hᵢxᵢ</span>
-           + <span class="qf-j">Σ<sub class="qf-sub">(i,j):cos≥τ</sub> Jᵢⱼxᵢxⱼ</span>
-    </div>
-
-    <div class="qf-annot">
-      <div class="qf-a"><span class="qf-key qf-h">hᵢ</span> = Σₜ wₜ · cos(φ(xᵢ), μₜ) &nbsp;<span style="color:var(--muted2);">影響度スコア (RDS+)</span></div>
-      <div class="qf-a"><span class="qf-key qf-j">Jᵢⱼ</span> = (η/k)² · rᵢrⱼ · Kᵢⱼ &nbsp;<span style="color:var(--muted2);">冗長ペナルティ（疎行列）</span></div>
-    </div>
-
-    <div id="penalty-extra" style="display:none;">
-      <div class="qf-sep"></div>
-      <div class="qf-main">
-        + <span class="qf-pen">λₖ(Σᵢ xᵢ − k)²</span>
-        <span style="font-size:11px;color:var(--muted2);font-family:'Inter',sans-serif;"> ← 基数制約ペナルティ（実機では必須）</span>
+    <!-- SA version (no penalty) -->
+    <div id="formula-sa-wrap">
+      <div class="math-block" style="margin-bottom:10px;">
+        <div id="formula-qubo-sa"></div>
       </div>
-      <div class="qf-annot">
-        <div class="qf-a" style="color:var(--muted2);font-size:10px;">
-          ※ SAでは swap近傍が制約を自動満足するため λₖ は不要。<br/>
-          　実機アニーラは QUBO に全制約を埋め込む必要があります。<br/>
-          　λₖ が大きすぎると +2λₖ が全Jᵢⱼに加算され信号が埋もれます。
-        </div>
+      <div style="font-size:11px;color:var(--muted);line-height:1.8;margin-top:4px;">
+        <span style="color:#a5b4fc;font-family:'JetBrains Mono',monospace;">h<sub>i</sub></span>：RDS+ 影響度スコア（大きいほど重要）&nbsp;&nbsp;
+        <span style="color:#fbbf24;font-family:'JetBrains Mono',monospace;">J<sub>ij</sub></span> = (η/k)² · r<sub>i</sub>r<sub>j</sub> · K<sub>ij</sub>（冗長ペナルティ、疎行列）<br/>
+        制約 <strong>Σ x<sub>i</sub> = k</strong> は <em>swap 近傍</em> で厳密に保持（λₖ ペナルティ不要）
       </div>
     </div>
 
-    <div class="qf-sep"></div>
+    <!-- Hardware version (with penalty) -->
+    <div id="formula-hw-wrap" style="display:none;">
+      <div class="math-block" style="margin-bottom:10px;">
+        <div id="formula-qubo-hw"></div>
+      </div>
+      <div style="font-size:11px;color:var(--muted);line-height:1.8;margin-top:4px;">
+        <span style="color:#f472b6;font-family:'JetBrains Mono',monospace;">λ<sub>k</sub>(Σx<sub>i</sub>−k)²</span>：基数制約ペナルティ（実機では全制約を QUBO に埋め込む必要がある）<br/>
+        λₖ が大きすぎると +2λₖ が全 J<sub>ij</sub> に加算され信号が埋もれるため慎重な調整が必要
+      </div>
+    </div>
+
+    <div class="qf-sep" style="margin-top:12px;margin-bottom:10px;"></div>
     <div class="qf-constraint" id="qf-constraint">
       制約: <span class="qf-ok">Σᵢ xᵢ = k</span>（swap移動で厳密に保持）&nbsp; xᵢ ∈ {0, 1}
     </div>
@@ -630,6 +778,7 @@ function genHScores(n, rng) {
 // ── State ──
 let backend='sa', animTimer=null, energyChart=null, scatterChart=null, hscoreChart=null;
 let visible={qubo:true, rr:false, rand:false, toph:false};
+let apiToken = sessionStorage.getItem('qubo_api_token') || null;
 
 // ── Screen 1 ──
 function updateSlider(name, val, min, max) {
@@ -652,6 +801,35 @@ function selectBackend(b) {
   const el=document.getElementById('scale-note');
   el.className='scale-note '+n.cls;
   el.innerHTML=n.html;
+  // Show/hide API token input
+  const wrap=document.getElementById('api-token-wrap');
+  if (b==='sa') {
+    wrap.classList.remove('show');
+  } else {
+    wrap.classList.add('show');
+    updateApiStatus();
+  }
+}
+
+function saveApiToken() {
+  const v=document.getElementById('api-token-input').value.trim();
+  if (!v) return;
+  apiToken=v;
+  sessionStorage.setItem('qubo_api_token',v);
+  document.getElementById('api-token-input').value='';
+  updateApiStatus();
+}
+
+function updateApiStatus() {
+  const st=document.getElementById('api-status');
+  if (apiToken) {
+    st.className='api-status ok';
+    const label=backend==='amplify'?'Fixstars Amplify':'D-Wave Advantage';
+    st.textContent='✓ Token 設定済み — '+label+' 実機で実行します';
+  } else {
+    st.className='api-status none';
+    st.textContent='Token 未設定 — シミュレーションで実行';
+  }
 }
 
 // ── Screen transitions ──
@@ -688,16 +866,36 @@ function startAnalysis() {
   goToScreen(2);
 
   // Update QUBO formula display based on backend
-  document.getElementById('backend-badge').textContent=backend==='sa'?'SA':backend==='amplify'?'Amplify':'D-Wave';
-  document.getElementById('backend-badge').className=backend==='sa'?'badge-sa':'badge-hw';
-  document.getElementById('sim-badge').style.display=backend==='sa'?'none':'inline-block';
-  document.getElementById('penalty-extra').style.display=backend==='sa'?'none':'block';
-  document.getElementById('qf-constraint').innerHTML = backend==='sa'
+  const isSA = backend==='sa';
+  const hasToken = !!apiToken && !isSA;
+  document.getElementById('backend-badge').textContent=isSA?'SA':backend==='amplify'?'Amplify':'D-Wave';
+  document.getElementById('backend-badge').className=isSA?'badge-sa':'badge-hw';
+  document.getElementById('sim-badge').style.display=(isSA||hasToken)?'none':'inline-block';
+  document.getElementById('formula-sa-wrap').style.display=isSA?'block':'none';
+  document.getElementById('formula-hw-wrap').style.display=isSA?'none':'block';
+  document.getElementById('qf-constraint').innerHTML = isSA
     ? '制約: <span class="qf-ok">Σᵢ xᵢ = k</span>（swap移動で厳密に保持）&nbsp; xᵢ ∈ {0,1}'
     : '制約: <span style="color:#f472b6;">λₖ(Σᵢ xᵢ−k)²</span> をペナルティとして H(x) に加算 &nbsp; xᵢ ∈ {0,1}';
+  const hwLabel = backend==='amplify'?'Fixstars Amplify':'D-Wave Advantage';
   document.getElementById('s2-heading').textContent=
-    backend==='sa'?'Simulated Annealing':backend==='amplify'?'Fixstars Amplify (Simulated)':'D-Wave Advantage (Simulated)';
+    isSA?'Simulated Annealing':hasToken?(hwLabel+' (実機)'):hwLabel+' (シミュレート)';
+  document.getElementById('s2-sub').textContent=
+    isSA?'スワップ近傍で QUBO を最適化中…基数制約 Σxᵢ=k を厳密に保持'
+    :hasToken?hwLabel+' API に接続してリアル最適化中…'
+    :'SA でシミュレート中（実機化には API Token を設定）';
 
+  // Attempt real hardware API if token provided
+  if (hasToken) {
+    tryRealHardwareAPI(k).then(success => {
+      if (!success) runSASimulation(k);
+    });
+    return;
+  }
+
+  runSASimulation(k);
+}
+
+function runSASimulation(k) {
   const energies=simulateSAEnergy(k);
   const N=energies.length, SWEEPS=5000;
   const rng=makePRNG(999);
@@ -746,6 +944,157 @@ function startAnalysis() {
     document.getElementById('prog-pct').textContent=Math.round(pct*100)+'%';
     frame++;
   }, 35);
+}
+
+// ── Real hardware API ──
+function buildDemoQUBO(k) {
+  // Build a small QUBO (N=50) from demo embeddings for real hardware submission
+  const rng=makePRNG(0xbeef);
+  const N=50, kSmall=Math.max(5,Math.round(k*(50/500)));
+  const h=Array.from({length:N},()=>parseFloat((0.2+rng()*0.8).toFixed(4)));
+  const pairs=[];
+  for (let i=0;i<N;i++) for (let j=i+1;j<N;j++) {
+    const sim=rng();
+    if (sim>0.85) pairs.push([i,j,parseFloat(((0.1+rng()*0.3)*(1/kSmall)**2).toFixed(5))]);
+  }
+  return {N, kSmall, h, pairs};
+}
+
+function getPythonCode(backend, token, qubo) {
+  if (backend==='amplify') return `# Fixstars Amplify — QUBO Data Selection
+from amplify import VariableGenerator, sum_poly, solve
+from amplify.client import FixstarsClient
+from datetime import timedelta
+
+# Build QUBO (N=${qubo.N}, k=${qubo.kSmall})
+client = FixstarsClient()
+client.token = "${token ? token.slice(0,4)+'…(your token)' : '<YOUR_AMPLIFY_TOKEN>'}"
+client.parameters.timeout = timedelta(seconds=30)
+
+gen = VariableGenerator()
+x = gen.array("Binary", ${qubo.N})
+
+h = ${JSON.stringify(qubo.h)}
+pairs = ${JSON.stringify(qubo.pairs.slice(0,20))}  # (truncated for display)
+
+H = -sum_poly(h[i] * x[i] for i in range(${qubo.N}))
+H += sum_poly(J * x[i] * x[j] for i, j, J in pairs)
+
+# Cardinality constraint as penalty (required for hardware)
+lam_k = 2.0 * max(h)
+H += lam_k * (sum_poly(x) - ${qubo.kSmall}) ** 2
+
+result = solve(H, client)
+selected = [i for i, v in enumerate(result.best.values.tolist()) if v == 1]
+print(f"Selected {len(selected)} samples:", selected[:10], "...")`;
+
+  return `# D-Wave Advantage — QUBO Data Selection
+import json, time, requests
+
+TOKEN = "${token ? token.slice(0,4)+'…(your token)' : '<YOUR_DWAVE_TOKEN>'}"
+SAPI  = "https://cloud.dwavesys.com/sapi/v2"
+
+# Build QUBO (N=${qubo.N}, k=${qubo.kSmall})
+h = ${JSON.stringify(qubo.h)}
+pairs = ${JSON.stringify(qubo.pairs.slice(0,20))}
+
+# Add cardinality penalty  λₖ(Σxᵢ−k)²
+lam_k = 2.0 * max(h)
+lin = [hi + lam_k * (1 - 2*${qubo.kSmall}) for hi in h]  # diagonal QUBO terms
+quad = [[i, j, J + 2*lam_k] for i, j, J in pairs]
+for i in range(${qubo.N}):
+    for j in range(i+1, ${qubo.N}):
+        if not any(p[0]==i and p[1]==j for p in pairs):
+            quad.append([i, j, 2*lam_k])
+
+headers = {"X-Auth-Token": TOKEN, "Content-Type": "application/json"}
+body = {
+    "solver": "Advantage_system6.3",
+    "type": "qubo",
+    "data": {"format": "qp", "lin": lin, "quad": quad},
+    "params": {"num_reads": 200, "annealing_time": 20}
+}
+r = requests.post(SAPI+"/problems", headers=headers, json=body)
+problem_id = r.json()["id"]
+
+# Poll for result
+while True:
+    r = requests.get(SAPI+f"/problems/{problem_id}", headers=headers)
+    if r.json()["status"] == "COMPLETED": break
+    time.sleep(1)
+
+samples = r.json()["answer"]["solutions"]
+best = samples[0]
+selected = [i for i, v in enumerate(best) if v == 1]
+print(f"Selected {len(selected)} samples:", selected[:10], "...")`;
+}
+
+async function tryRealHardwareAPI(k) {
+  const qubo = buildDemoQUBO(k);
+  const isAmplify = backend === 'amplify';
+  const endpoint = isAmplify
+    ? 'https://amplify.fixstars.com/api/v2/jobs'
+    : 'https://cloud.dwavesys.com/sapi/v2/problems';
+
+  // Show progress while trying
+  document.getElementById('prog-label').textContent = (isAmplify?'Amplify':'D-Wave') + ' API に接続中…';
+  document.getElementById('prog-pct').textContent = '…';
+
+  try {
+    const headers = isAmplify
+      ? {'Authorization': `Bearer ${apiToken}`, 'Content-Type': 'application/json'}
+      : {'X-Auth-Token': apiToken, 'Content-Type': 'application/json'};
+
+    // Build request body
+    const body = isAmplify
+      ? {qubo: {linear: Object.fromEntries(qubo.h.map((v,i)=>[i,-v])),
+                quadratic: Object.fromEntries(qubo.pairs.map(([i,j,v])=>[`${i},${j}`,v]))},
+         parameters: {timeout: 30000}}
+      : {solver: 'Advantage_system6.3', type: 'qubo',
+         data: {format:'qp', lin: qubo.h.map((v,i)=>-v+2*(1-2*qubo.kSmall)*0.5),
+                quad: qubo.pairs.map(([i,j,v])=>[i,j,v])},
+         params: {num_reads:100, annealing_time:20}};
+
+    const resp = await fetch(endpoint, {method:'POST', headers, body: JSON.stringify(body)});
+
+    if (!resp.ok) {
+      const err = await resp.json().catch(()=>({message:resp.statusText}));
+      throw new Error(`API Error ${resp.status}: ${err.message||JSON.stringify(err)}`);
+    }
+
+    const data = await resp.json();
+    // Parse response (Amplify and D-Wave have different formats)
+    let selected = [];
+    if (isAmplify && data.solutions) {
+      selected = data.solutions[0].values.reduce((acc,v,i)=>{if(v)acc.push(i);return acc;},[]);
+    } else if (data.answer?.solutions) {
+      selected = data.answer.solutions[0].reduce((acc,v,i)=>{if(v)acc.push(i);return acc;},[]);
+    }
+
+    // Show result and advance to output
+    document.getElementById('sv-selected').textContent = selected.length || qubo.kSmall;
+    document.getElementById('prog-fill').style.width = '100%';
+    document.getElementById('prog-label').textContent = '完了 — 実機アニーリング成功';
+    document.getElementById('prog-pct').textContent = '100%';
+    setTimeout(()=>buildOutput(k), 1200);
+    return true;
+
+  } catch (e) {
+    const isCORS = e.message.includes('Failed to fetch') || e.message.includes('NetworkError');
+    const errMsg = isCORS
+      ? 'ブラウザの CORS 制限により直接 API を呼び出せません。\n以下の Python コードをローカルで実行してください。'
+      : `API エラー: ${e.message}`;
+    showCodeModal(errMsg, getPythonCode(backend, apiToken, qubo));
+    return false;
+  }
+}
+
+function showCodeModal(errMsg, code) {
+  document.getElementById('modal-err').textContent = errMsg;
+  document.getElementById('modal-code').textContent = code;
+  document.getElementById('modal-title').textContent =
+    (backend==='amplify'?'Fixstars Amplify':'D-Wave') + ' — Python 実行コード';
+  document.getElementById('code-modal').classList.remove('hidden');
 }
 
 // ── Screen 3 ──
@@ -1013,6 +1362,34 @@ function buildHScoreChart() {
     }
   });
 }
+
+// ── KaTeX rendering ──
+function renderKatex() {
+  const opts = {throwOnError: false};
+  const dOpts = {throwOnError: false, displayMode: true};
+
+  // Screen 1: RDS+ formulas
+  const rdsc = document.getElementById('formula-rdsc');
+  const rdsl = document.getElementById('formula-rdsl');
+  if (rdsc) katex.render(String.raw`h_i = \sum_t w_t \cdot \cos\!\left(\varphi(x_i),\, \mu_t\right)`, rdsc, dOpts);
+  if (rdsl) katex.render(String.raw`h_i = \sum_t w_t \cdot \max\!\left(W_t^\top \varphi(x_i)\right)`, rdsl, dOpts);
+
+  // Screen 2: QUBO formulas
+  const fSA = document.getElementById('formula-qubo-sa');
+  const fHW = document.getElementById('formula-qubo-hw');
+  if (fSA) katex.render(
+    String.raw`H(\mathbf{x}) = -\sum_i \textcolor{#a5b4fc}{h_i} x_i \;+\; \sum_{\substack{(i,j):\\ \cos_{ij}\geq\tau}} \textcolor{#fbbf24}{J_{ij}} x_i x_j`,
+    fSA, dOpts);
+  if (fHW) katex.render(
+    String.raw`H(\mathbf{x}) = -\sum_i h_i x_i + \sum_{(i,j)} J_{ij} x_i x_j \;+\; \textcolor{#f472b6}{\lambda_k\!\left(\sum_i x_i - k\right)^{\!2}}`,
+    fHW, dOpts);
+}
+
+document.addEventListener('DOMContentLoaded', () => {
+  renderKatex();
+  // Restore API status if token was saved in sessionStorage
+  if (apiToken && (backend === 'amplify' || backend === 'dwave')) updateApiStatus();
+});
 </script>
 </body>
 </html>
