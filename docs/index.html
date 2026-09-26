@@ -12,23 +12,23 @@
   <script src="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.16.9/katex.min.js"></script>
   <style>
     :root {
-      --bg:#0f172a; --surface:#1e293b; --surface2:#162032; --border:#334155;
-      --border2:#475569; --text:#f8fafc; --muted:#94a3b8; --muted2:#64748b;
-      --accent:#6366f1; --accent-lt:#a5b4fc; --success:#10b981;
-      --amber:#f59e0b; --red:#ef4444; --radius:14px;
+      --bg:#ffffff; --surface:#f8fafc; --surface2:#f1f5f9; --border:#e2e8f0;
+      --border2:#cbd5e1; --text:#0f172a; --muted:#475569; --muted2:#94a3b8;
+      --accent:#6366f1; --accent-lt:#4f46e5; --success:#059669;
+      --amber:#d97706; --red:#dc2626; --radius:14px;
     }
     *,*::before,*::after{box-sizing:border-box;margin:0;padding:0;}
     body{background:var(--bg);color:var(--text);font-family:'Inter',sans-serif;min-height:100vh;}
 
-    nav{background:var(--surface);border-bottom:1px solid var(--border);
+    nav{background:#fff;border-bottom:1px solid var(--border);
       padding:0 28px;height:56px;display:flex;align-items:center;justify-content:space-between;
-      position:sticky;top:0;z-index:100;}
-    .logo{font-size:16px;font-weight:700;background:linear-gradient(90deg,#818cf8,#c084fc);
+      position:sticky;top:0;z-index:100;box-shadow:0 1px 4px rgba(0,0,0,.06);}
+    .logo{font-size:16px;font-weight:700;background:linear-gradient(90deg,#6366f1,#a855f7);
       -webkit-background-clip:text;-webkit-text-fill-color:transparent;}
     .step-bar{display:flex;align-items:center;gap:0;}
     .step{display:flex;align-items:center;gap:7px;padding:5px 12px;border-radius:20px;
       font-size:11px;font-weight:600;color:var(--muted2);transition:all .3s;}
-    .step.active{background:rgba(99,102,241,.15);color:var(--accent-lt);}
+    .step.active{background:rgba(99,102,241,.08);color:var(--accent);}
     .step.done{color:var(--success);}
     .step-num{width:18px;height:18px;border-radius:50%;border:1.5px solid currentColor;
       display:flex;align-items:center;justify-content:center;font-size:10px;flex-shrink:0;}
@@ -39,14 +39,15 @@
     @keyframes fadeIn{from{opacity:0;transform:translateY(6px);}to{opacity:1;transform:none;}}
     .container{max-width:1080px;margin:0 auto;padding:28px 20px;}
 
-    .card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:22px;}
+    .card{background:#fff;border:1px solid var(--border);border-radius:var(--radius);padding:22px;
+      box-shadow:0 1px 4px rgba(0,0,0,.04);}
     .card-label{font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.08em;
       color:var(--muted2);margin-bottom:12px;}
 
     /* ── Page title ── */
     .page-title-section{text-align:center;margin-bottom:24px;padding:28px 20px 20px;}
     .page-title-section h1{font-size:28px;font-weight:800;line-height:1.2;margin-bottom:8px;
-      background:linear-gradient(120deg,#818cf8,#c084fc,#34d399);
+      background:linear-gradient(120deg,#6366f1,#a855f7,#059669);
       -webkit-background-clip:text;-webkit-text-fill-color:transparent;}
     .page-title-section p{font-size:13px;color:var(--muted);max-width:600px;margin:0 auto;}
 
@@ -116,16 +117,17 @@
     .modal-err{padding:10px 14px;background:rgba(239,68,68,.08);border:1px solid rgba(239,68,68,.2);
       border-radius:7px;font-size:11px;color:#fca5a5;margin-bottom:14px;}
 
-    /* KaTeX override — must inherit dark-bg text color */
-    .katex{font-size:1.15em!important;color:inherit!important;}
-    .katex-display{margin:.5em 0!important;overflow-x:auto;}
-    .katex .base{color:#e2e8f0!important;}
-    .katex .mord,.katex .mop,.katex .mrel,.katex .mbin,.katex .mopen,.katex .mclose,
-    .katex .mpunct,.katex .mfrac,.katex .msqrt,.katex .delimsizing{color:#e2e8f0!important;}
-    .math-block{background:#0d1729;border:1px solid rgba(99,102,241,.25);
-      border-radius:10px;padding:18px 22px;margin:10px 0;overflow-x:auto;
-      color:#e2e8f0;}
-    .math-label{font-size:10px;color:var(--muted2);margin-bottom:8px;letter-spacing:.04em;}
+    /* KaTeX display */
+    .katex{font-size:1.2em!important;}
+    .katex-display{margin:.4em 0!important;overflow-x:auto;}
+    .math-block{
+      background:linear-gradient(135deg,rgba(99,102,241,.04),rgba(79,70,229,.02));
+      border:1px solid rgba(99,102,241,.18);
+      border-left:3px solid var(--accent);
+      border-radius:10px;padding:16px 20px;margin:10px 0;overflow-x:auto;
+      color:var(--text);}
+    .math-label{font-size:10px;font-weight:600;color:var(--accent);margin-bottom:10px;
+      letter-spacing:.06em;text-transform:uppercase;}
     .math-annot{font-size:11px;color:var(--muted);margin-top:10px;line-height:1.7;
       font-family:'Inter',sans-serif;}
 
