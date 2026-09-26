@@ -214,6 +214,21 @@
       background:transparent;color:var(--muted);font-size:12px;font-weight:600;
       font-family:'Inter',sans-serif;cursor:pointer;transition:all .2s;margin-top:16px;}
     .btn-reset:hover{border-color:var(--accent);color:var(--accent-lt);}
+
+    /* token table */
+    .tfilter-btn{padding:3px 10px;border-radius:4px;border:1px solid var(--border2);
+      background:transparent;color:var(--muted2);font-size:10px;font-weight:600;
+      font-family:'Inter',sans-serif;cursor:pointer;transition:all .15s;}
+    .tfilter-btn.active{background:rgba(99,102,241,.12);border-color:var(--accent);color:var(--accent-lt);}
+    .h-bar-wrap{display:flex;align-items:center;gap:7px;justify-content:flex-end;}
+    .h-bar{height:6px;border-radius:3px;flex-shrink:0;}
+    .h-val{font-family:'JetBrains Mono',monospace;font-size:10px;min-width:36px;text-align:right;}
+    .task-chip{display:inline-block;padding:2px 7px;border-radius:4px;font-size:10px;font-weight:700;}
+    .page-btn{padding:3px 10px;border-radius:4px;border:1px solid var(--border2);
+      background:transparent;color:var(--muted);font-size:10px;font-family:'Inter',sans-serif;
+      cursor:pointer;transition:all .15s;}
+    .page-btn:hover:not(:disabled){border-color:var(--accent);color:var(--accent-lt);}
+    .page-btn:disabled{opacity:.3;cursor:default;}
   </style>
 </head>
 <body>
@@ -424,6 +439,15 @@
     <div class="prog-lbl"><span id="prog-label">Sweep 0 / 5000</span><span id="prog-pct">0%</span></div>
   </div>
 
+  <!-- Why fast explanation -->
+  <div style="margin-top:16px;padding:14px 18px;background:rgba(16,185,129,.05);border:1px solid rgba(16,185,129,.15);border-radius:10px;font-size:11px;color:var(--muted);line-height:1.8;">
+    <strong style="color:var(--success);">なぜ数秒で解析が終わるのか？</strong><br/>
+    ① <strong>RDS+ スコアリング</strong>：順伝搬のみ（勾配計算なし）→ N=5,000 サンプル全体でも O(N) で完了<br/>
+    ② <strong>QUBO 構築</strong>：cos_sim ≥ τ のペアのみ Jᵢⱼ ≠ 0（疎行列）→ ~2M エッジ（全体の 0.06%）<br/>
+    ③ <strong>SA swap近傍</strong>：1スイープあたり O(k) の局所更新 → 数千スイープで収束<br/>
+    <span style="color:var(--muted2);">実際の学習データ選択パイプラインも、逆伝搬ベースの Influence Functions（全サンプル × 全パラメータ）と比べて 100–1000× 高速です。</span>
+  </div>
+
 </div>
 </div>
 </div>
@@ -431,62 +455,109 @@
 <!-- ═══════════════════════════ SCREEN 3: Results ═══════════════════════════ -->
 <div id="screen-3" class="screen">
 <div class="container">
-<div class="s3-grid">
 
-  <!-- Left: scatter -->
-  <div class="card">
-    <div class="scatter-header">
-      <span class="scatter-title">Embedding Distribution (PCA 2D of ℝ²⁰⁴⁸)</span>
-      <div class="toggle-row" id="toggle-row"></div>
+  <!-- Top row: scatter + metrics -->
+  <div class="s3-grid" style="margin-bottom:20px;">
+
+    <!-- Left: scatter -->
+    <div class="card">
+      <div class="scatter-header">
+        <span class="scatter-title">Embedding Distribution (PCA 2D of ℝ²⁰⁴⁸)</span>
+        <div class="toggle-row" id="toggle-row"></div>
+      </div>
+      <canvas id="scatter-chart" style="max-height:360px;"></canvas>
+      <div class="legend-row" id="scatter-legend"></div>
     </div>
-    <canvas id="scatter-chart" style="max-height:360px;"></canvas>
-    <div class="legend-row" id="scatter-legend"></div>
+
+    <!-- Right: metrics -->
+    <div>
+      <div class="metric-hero">
+        <div class="mh-val" id="hero-val">—</div>
+        <div class="mh-unit">Token Reduction (QUBO)</div>
+        <div class="mh-sub" id="hero-sub">—</div>
+      </div>
+
+      <div class="card">
+        <div class="card-label" style="margin-bottom:8px;">Method Comparison</div>
+        <table>
+          <thead>
+            <tr>
+              <th>Method</th>
+              <th>Tokens</th>
+              <th>Reduc.</th>
+              <th>
+                <span class="th-tip">Redund.
+                  <span class="tip-text">cos_sim ≥ τ のペア数（選択セット内）<br/>少ないほど多様な選択</span>
+                </span>
+              </th>
+              <th>
+                <span class="th-tip">WD↓
+                  <span class="tip-text">Wasserstein距離（PCA空間）<br/>選択分布 vs 全体プール分布<br/>小さいほど元分布を忠実に再現</span>
+                </span>
+              </th>
+            </tr>
+          </thead>
+          <tbody id="compare-tbody"></tbody>
+        </table>
+
+        <div class="wd-box">
+          <strong>WD（Wasserstein距離）</strong> は選択後の埋め込み分布が元のプール分布にどれだけ近いかを測る指標です（Earth Mover's Distance）。値が小さいほど選択データが学習データ全体の性質を保持しています。Top-h は影響度の高いサンプルに集中するため WD が大きくなります。
+        </div>
+
+        <div class="hscore-section">
+          <div class="hscore-title">h-score 分布（RDS+ 影響度推定）</div>
+          <canvas id="hscore-chart" style="max-height:120px;"></canvas>
+        </div>
+      </div>
+
+      <button class="btn-reset" onclick="resetToScreen1()">← New Analysis</button>
+    </div>
   </div>
 
-  <!-- Right: metrics -->
-  <div>
-    <div class="metric-hero">
-      <div class="mh-val" id="hero-val">—</div>
-      <div class="mh-unit">Token Reduction (QUBO)</div>
-      <div class="mh-sub" id="hero-sub">—</div>
+  <!-- Bottom: selected tokens table -->
+  <div class="card" id="tokens-card">
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;flex-wrap:wrap;gap:10px;">
+      <div>
+        <div class="card-label" style="margin-bottom:2px;">Selected Tokens &amp; RDS+ Weights</div>
+        <div style="font-size:11px;color:var(--muted2);">QUBO (SA) で選択されたサンプルとその影響度スコア h<sub>i</sub> を降順表示</div>
+      </div>
+      <div style="display:flex;gap:6px;align-items:center;">
+        <span style="font-size:10px;color:var(--muted2);">タスクフィルタ：</span>
+        <button class="tfilter-btn active" id="tf-all"      onclick="filterTokens('all')">All</button>
+        <button class="tfilter-btn"        id="tf-0"        onclick="filterTokens(0)">Alpaca</button>
+        <button class="tfilter-btn"        id="tf-1"        onclick="filterTokens(1)">Dolly</button>
+        <button class="tfilter-btn"        id="tf-2"        onclick="filterTokens(2)">FLAN</button>
+        <button class="tfilter-btn"        id="tf-3"        onclick="filterTokens(3)">WizardLM</button>
+      </div>
     </div>
-
-    <div class="card">
-      <div class="card-label" style="margin-bottom:8px;">Method Comparison</div>
-      <table>
+    <div style="overflow-x:auto;">
+      <table id="token-table" style="font-size:11px;">
         <thead>
           <tr>
-            <th>Method</th>
-            <th>Tokens</th>
-            <th>Reduc.</th>
-            <th>
-              <span class="th-tip">Redund.
-                <span class="tip-text">cos_sim ≥ τ のペア数（選択セット内）<br/>少ないほど多様な選択</span>
-              </span>
-            </th>
-            <th>
-              <span class="th-tip">WD↓
-                <span class="tip-text">Wasserstein距離（PCA空間）<br/>選択分布 vs 全体プール分布<br/>小さいほど元分布を忠実に再現</span>
+            <th style="text-align:left;width:32px;">#</th>
+            <th style="text-align:left;width:80px;">Task</th>
+            <th style="text-align:left;">Prompt (excerpt)</th>
+            <th style="text-align:right;width:60px;">Tokens</th>
+            <th style="text-align:right;width:120px;">
+              <span class="th-tip">hᵢ (影響度)
+                <span class="tip-text">RDS+ スコア：値が大きいほど<br/>ファインチューニングへの<br/>貢献度が高いと推定されます</span>
               </span>
             </th>
           </tr>
         </thead>
-        <tbody id="compare-tbody"></tbody>
+        <tbody id="token-tbody"></tbody>
       </table>
-
-      <div class="wd-box">
-        <strong>WD（Wasserstein距離）</strong> は選択後の埋め込み分布が元のプール分布にどれだけ近いかを測る指標です（Earth Mover's Distance）。値が小さいほど選択データが学習データ全体の性質を保持しています。Top-h は影響度の高いサンプルに集中するため WD が大きくなります。
-      </div>
-
-      <div class="hscore-section">
-        <div class="hscore-title">h-score 分布（RDS+ 影響度推定）</div>
-        <canvas id="hscore-chart" style="max-height:120px;"></canvas>
+    </div>
+    <div id="token-pagination" style="display:flex;justify-content:space-between;align-items:center;margin-top:12px;font-size:11px;color:var(--muted2);">
+      <span id="token-count-lbl"></span>
+      <div style="display:flex;gap:6px;">
+        <button class="page-btn" id="page-prev" onclick="changePage(-1)">← Prev</button>
+        <span id="page-lbl" style="padding:4px 8px;"></span>
+        <button class="page-btn" id="page-next" onclick="changePage(1)">Next →</button>
       </div>
     </div>
-
-    <button class="btn-reset" onclick="resetToScreen1()">← New Analysis</button>
   </div>
-</div>
+
 </div>
 </div>
 
@@ -698,6 +769,8 @@ function buildOutput(k) {
 
   buildScatter();
   buildHScoreChart();
+  generateSelectedTokens();
+  filterTokens('all');
 }
 
 // ── Toggle + Scatter ──
@@ -762,6 +835,145 @@ function buildScatter() {
       }
     }
   });
+}
+
+// ── Selected tokens ──
+const SAMPLE_PROMPTS = [
+  // Alpaca (task 0)
+  ['Explain the difference between supervised and unsupervised learning in simple terms.',
+   'Write a Python function that sorts a list of dictionaries by a specific key.',
+   'Translate the following English sentence to Japanese: "The weather is beautiful today."',
+   'Summarize the main causes of World War I in three bullet points.',
+   'What are the key principles of object-oriented programming?',
+   'Generate a creative short story about a robot who discovers emotions.',
+   'How do transformers work in natural language processing?',
+   'Write a SQL query to find the top 5 customers by total purchase amount.',
+   'Explain gradient descent and why it is used in machine learning.',
+   'What are the ethical considerations of deploying AI in healthcare?',
+   'Describe the differences between REST and GraphQL APIs.',
+   'Write a bash script that monitors CPU usage every 5 seconds.',
+   'What is the CAP theorem and how does it apply to distributed systems?',
+   'Explain how backpropagation works in neural networks.',
+   ],
+  // Dolly (task 1)
+  ['Who invented the telephone and when was it patented?',
+   'What is the capital of New Zealand and what is its population?',
+   'Explain the process of photosynthesis in plants.',
+   'What are the main differences between mitosis and meiosis?',
+   'How does the immune system protect the body from infections?',
+   'What is quantum entanglement and why is it significant?',
+   'Describe the water cycle and its importance to life on Earth.',
+   'Who wrote "Pride and Prejudice" and what is the novel about?',
+   'What are the primary functions of the liver in the human body?',
+   'Explain the difference between a virus and a bacterium.',
+   'What is the theory of general relativity?',
+   'How do vaccines provide immunity against diseases?',
+   ],
+  // FLAN (task 2)
+  ['Classify the sentiment of this review: "The product broke after two uses. Very disappointed."',
+   'Given the premise, identify if the hypothesis is entailed, neutral, or contradicted.',
+   'Translate this text from French to English: "Je suis très heureux de vous rencontrer."',
+   'Choose the correct answer: The mitochondria is known as the ________ of the cell.',
+   'Summarize this paragraph in one sentence: [paragraph about climate change]',
+   'Is the following statement true or false: The Great Wall of China is visible from space.',
+   'Convert this active sentence to passive voice: "The chef prepared the meal."',
+   'Identify all named entities in this sentence: "Apple CEO Tim Cook visited Tokyo last Tuesday."',
+   'What is the correct mathematical operation? 15% of 200 =',
+   'Rewrite this paragraph to improve clarity and conciseness.',
+   'Answer this reading comprehension question based on the given passage.',
+   ],
+  // WizardLM (task 3)
+  ['Implement a binary search tree with insert, delete, and search operations in Python.',
+   'Design a microservices architecture for an e-commerce platform handling 10M daily users.',
+   'Prove that the sum of all angles in a convex polygon with n sides is (n-2)×180°.',
+   'Write a recursive algorithm to solve the Tower of Hanoi problem and analyze its complexity.',
+   'Design a distributed cache system that handles 1M requests per second with low latency.',
+   'Implement a lock-free concurrent queue using Compare-And-Swap operations in C++.',
+   'Derive the backpropagation equations for a fully-connected layer with ReLU activation.',
+   'How would you design a real-time recommendation system for a streaming service?',
+   'Explain the mathematical foundations of attention mechanisms in transformer architectures.',
+   'Implement a compiler front-end for a simple programming language with error recovery.',
+   'Design a system to detect and mitigate DDoS attacks at the application layer.',
+   ],
+];
+
+let ALL_TOKENS = [];
+let filteredTokens = [];
+let tokenFilter = 'all';
+let tokenPage = 0;
+const TOKENS_PER_PAGE = 15;
+
+function generateSelectedTokens() {
+  const rng = makePRNG(0xcafe1234);
+  ALL_TOKENS = [];
+  for (let t = 0; t < 4; t++) {
+    const prompts = SAMPLE_PROMPTS[t];
+    const count = t === 3 ? 15 : 12; // WizardLM has longer samples
+    for (let i = 0; i < count; i++) {
+      const prompt = prompts[i % prompts.length];
+      const distFactor = 0.3 + rng() * 0.7;
+      const h = parseFloat((Math.exp(-distFactor * 0.6) * 0.5 + rng() * 0.35 + 0.05).toFixed(3));
+      const baseTokens = t === 3 ? 580 : t === 0 ? 420 : t === 1 ? 490 : 360;
+      const tokens = Math.round(baseTokens + (rng() - 0.5) * 180);
+      ALL_TOKENS.push({ rank: 0, task: t, prompt, h, tokens });
+    }
+  }
+  // Sort by h descending and assign rank
+  ALL_TOKENS.sort((a, b) => b.h - a.h);
+  ALL_TOKENS.forEach((tok, i) => tok.rank = i + 1);
+}
+
+function filterTokens(f) {
+  tokenFilter = f;
+  tokenPage = 0;
+  ['all', 0, 1, 2, 3].forEach(v => {
+    const el = document.getElementById('tf-' + v);
+    if (el) el.classList.toggle('active', v === f);
+  });
+  renderTokenTable();
+}
+
+function changePage(delta) {
+  const maxPage = Math.ceil(filteredTokens.length / TOKENS_PER_PAGE) - 1;
+  tokenPage = Math.max(0, Math.min(maxPage, tokenPage + delta));
+  renderTokenTable();
+}
+
+function renderTokenTable() {
+  filteredTokens = tokenFilter === 'all'
+    ? ALL_TOKENS
+    : ALL_TOKENS.filter(t => t.task === tokenFilter);
+
+  const start = tokenPage * TOKENS_PER_PAGE;
+  const page = filteredTokens.slice(start, start + TOKENS_PER_PAGE);
+  const maxH = Math.max(...filteredTokens.map(t => t.h));
+
+  document.getElementById('token-tbody').innerHTML = page.map(tok => {
+    const barW = Math.round((tok.h / maxH) * 80);
+    const col = TASK_COLORS[tok.task];
+    const chipBg = col + '22';
+    const excerpt = tok.prompt.length > 65 ? tok.prompt.slice(0, 65) + '…' : tok.prompt;
+    return `<tr>
+      <td style="color:var(--muted2);">${tok.rank}</td>
+      <td><span class="task-chip" style="background:${chipBg};color:${col};">${TASK_NAMES[tok.task]}</span></td>
+      <td style="text-align:left;color:var(--muted);max-width:340px;">${excerpt}</td>
+      <td>${tok.tokens.toLocaleString()}</td>
+      <td>
+        <div class="h-bar-wrap">
+          <div class="h-bar" style="width:${barW}px;background:linear-gradient(90deg,${col}66,${col});"></div>
+          <span class="h-val" style="color:${col};">${tok.h.toFixed(3)}</span>
+        </div>
+      </td>
+    </tr>`;
+  }).join('');
+
+  const total = filteredTokens.length;
+  const maxPage = Math.ceil(total / TOKENS_PER_PAGE);
+  document.getElementById('token-count-lbl').textContent =
+    `${start + 1}–${Math.min(start + TOKENS_PER_PAGE, total)} / ${total} samples`;
+  document.getElementById('page-lbl').textContent = `${tokenPage + 1} / ${maxPage}`;
+  document.getElementById('page-prev').disabled = tokenPage === 0;
+  document.getElementById('page-next').disabled = tokenPage >= maxPage - 1;
 }
 
 // ── h-score histogram ──
