@@ -321,6 +321,40 @@
       cursor:pointer;transition:all .15s;}
     .page-btn:hover:not(:disabled){border-color:var(--accent);color:var(--accent-lt);}
     .page-btn:disabled{opacity:.3;cursor:default;}
+
+    /* ── Constraint rows ── */
+    .constraint-row{border:1px solid var(--border);border-radius:9px;margin-top:8px;
+      overflow:hidden;transition:border-color .2s;}
+    .constraint-row.on{border-color:rgba(99,102,241,.4);background:rgba(99,102,241,.03);}
+    .cr-top{display:flex;align-items:center;justify-content:space-between;
+      padding:9px 12px;gap:8px;}
+    .cr-label{display:flex;align-items:center;gap:7px;flex:1;min-width:0;}
+    .cr-sym{font-size:12px;font-family:'JetBrains Mono',monospace;color:var(--accent-lt);
+      background:rgba(99,102,241,.08);padding:2px 7px;border-radius:4px;white-space:nowrap;
+      font-style:normal;}
+    .cr-name{font-size:11px;font-weight:600;color:var(--text);}
+    .cr-tip{font-size:10px;color:var(--muted2);line-height:1.4;display:none;}
+    .constraint-row.on .cr-tip{display:block;}
+    .cr-params{padding:0 12px 10px;display:flex;gap:14px;flex-wrap:wrap;align-items:flex-end;}
+    .cr-field{display:flex;flex-direction:column;gap:3px;}
+    .cr-field-lbl{font-size:9px;font-weight:600;color:var(--muted2);text-transform:uppercase;letter-spacing:.05em;}
+    .cr-input{padding:5px 8px;border-radius:6px;border:1px solid var(--border2);
+      background:var(--surface2);color:var(--text);font-size:11px;
+      font-family:'JetBrains Mono',monospace;width:100px;outline:none;
+      transition:border-color .15s;}
+    .cr-input:focus{border-color:var(--accent);}
+    .cr-unit{font-size:10px;color:var(--muted2);margin-top:auto;padding-bottom:6px;white-space:nowrap;}
+
+    /* Toggle switch */
+    .cr-toggle{position:relative;display:inline-block;width:34px;height:19px;flex-shrink:0;}
+    .cr-toggle input{opacity:0;width:0;height:0;}
+    .cr-slider{position:absolute;inset:0;background:var(--border2);border-radius:10px;
+      cursor:pointer;transition:background .2s;}
+    .cr-slider::before{content:'';position:absolute;width:13px;height:13px;
+      left:3px;top:3px;background:#fff;border-radius:50%;transition:transform .2s;
+      box-shadow:0 1px 3px rgba(0,0,0,.2);}
+    .cr-toggle input:checked + .cr-slider{background:var(--accent);}
+    .cr-toggle input:checked + .cr-slider::before{transform:translateX(15px);}
   </style>
 </head>
 <body>
@@ -543,9 +577,85 @@
       </div>
 
       <div class="card-label" style="margin-top:16px;">QUBO 制約</div>
-      <div class="info-row"><span class="ik">λ_tok（トークン予算）</span><span class="iv" style="color:var(--muted2);">off</span></div>
-      <div class="info-row"><span class="ik">λ_task（タスク下限）</span><span class="iv" style="color:var(--muted2);">off</span></div>
-      <div class="info-row"><span class="ik">λ_src（ソース上限）</span><span class="iv" style="color:var(--muted2);">off</span></div>
+
+      <!-- λ_tok -->
+      <div class="constraint-row" id="crow-tok">
+        <div class="cr-top">
+          <div class="cr-label">
+            <code class="cr-sym">λ<sub>tok</sub></code>
+            <span class="cr-name">トークン予算上限</span>
+            <span class="cr-tip">選択サンプルの合計トークン数が予算を超えないよう制限</span>
+          </div>
+          <label class="cr-toggle">
+            <input type="checkbox" id="chk-tok" onchange="toggleConstraint('tok')" />
+            <span class="cr-slider"></span>
+          </label>
+        </div>
+        <div class="cr-params" id="cp-tok" style="display:none;">
+          <div class="cr-field">
+            <label class="cr-field-lbl">max_tokens</label>
+            <input type="number" class="cr-input" id="inp-tok" value="300000" min="50000" max="2000000" step="10000" />
+            <span class="cr-unit">tok</span>
+          </div>
+          <div class="cr-field">
+            <label class="cr-field-lbl">λ 重み</label>
+            <input type="number" class="cr-input" id="inp-tok-lam" value="1.0" min="0.1" max="10" step="0.1" style="width:60px;" />
+          </div>
+        </div>
+      </div>
+
+      <!-- λ_task -->
+      <div class="constraint-row" id="crow-task">
+        <div class="cr-top">
+          <div class="cr-label">
+            <code class="cr-sym">λ<sub>task</sub></code>
+            <span class="cr-name">タスク最低選択数</span>
+            <span class="cr-tip">各タスクから最低 min_per_task サンプル以上を選択するよう強制</span>
+          </div>
+          <label class="cr-toggle">
+            <input type="checkbox" id="chk-task" onchange="toggleConstraint('task')" />
+            <span class="cr-slider"></span>
+          </label>
+        </div>
+        <div class="cr-params" id="cp-task" style="display:none;">
+          <div class="cr-field">
+            <label class="cr-field-lbl">min_per_task</label>
+            <input type="number" class="cr-input" id="inp-task" value="50" min="1" max="500" step="5" />
+            <span class="cr-unit">samples</span>
+          </div>
+          <div class="cr-field">
+            <label class="cr-field-lbl">λ 重み</label>
+            <input type="number" class="cr-input" id="inp-task-lam" value="2.0" min="0.1" max="10" step="0.1" style="width:60px;" />
+          </div>
+        </div>
+      </div>
+
+      <!-- λ_src -->
+      <div class="constraint-row" id="crow-src">
+        <div class="cr-top">
+          <div class="cr-label">
+            <code class="cr-sym">λ<sub>src</sub></code>
+            <span class="cr-name">ソース選択上限比率</span>
+            <span class="cr-tip">単一ソース（タスク）からの選択が全体の max_ratio を超えないよう制限</span>
+          </div>
+          <label class="cr-toggle">
+            <input type="checkbox" id="chk-src" onchange="toggleConstraint('src')" />
+            <span class="cr-slider"></span>
+          </label>
+        </div>
+        <div class="cr-params" id="cp-src" style="display:none;">
+          <div class="cr-field">
+            <label class="cr-field-lbl">max_ratio</label>
+            <input type="number" class="cr-input" id="inp-src" value="0.40" min="0.10" max="1.00" step="0.05" style="width:70px;" />
+            <span class="cr-unit">（上限 40%）</span>
+          </div>
+          <div class="cr-field">
+            <label class="cr-field-lbl">λ 重み</label>
+            <input type="number" class="cr-input" id="inp-src-lam" value="1.5" min="0.1" max="10" step="0.1" style="width:60px;" />
+          </div>
+        </div>
+      </div>
+
     </div>
   </div>
 
@@ -671,7 +781,7 @@
         </div>
       </div>
 
-      <canvas id="scatter-chart" style="max-height:300px;"></canvas>
+      <div style="height:380px;position:relative;"><canvas id="scatter-chart"></canvas></div>
       <div class="legend-row" id="scatter-legend" style="margin-top:6px;"></div>
     </div>
 
@@ -892,6 +1002,30 @@ function genHScores(n, rng) {
 let backend='sa', animTimer=null, energyChart=null, scatterChart=null, hscoreChart=null;
 let visible={qubo:true, rr:false, rand:false, toph:false};
 let apiToken = sessionStorage.getItem('qubo_api_token') || null;
+
+// ── Constraint toggles ──
+function toggleConstraint(key) {
+  const chk = document.getElementById('chk-' + key);
+  const params = document.getElementById('cp-' + key);
+  const row = document.getElementById('crow-' + key);
+  const on = chk.checked;
+  params.style.display = on ? 'flex' : 'none';
+  row.classList.toggle('on', on);
+}
+
+function getConstraints() {
+  return {
+    tok:  { on: document.getElementById('chk-tok').checked,
+            max: parseInt(document.getElementById('inp-tok').value),
+            lam: parseFloat(document.getElementById('inp-tok-lam').value) },
+    task: { on: document.getElementById('chk-task').checked,
+            min: parseInt(document.getElementById('inp-task').value),
+            lam: parseFloat(document.getElementById('inp-task-lam').value) },
+    src:  { on: document.getElementById('chk-src').checked,
+            ratio: parseFloat(document.getElementById('inp-src').value),
+            lam: parseFloat(document.getElementById('inp-src-lam').value) },
+  };
+}
 
 // ── Screen 1 ──
 function updateSlider(name, val, min, max) {
@@ -1317,6 +1451,7 @@ function buildScatter() {
     type:'scatter',data:{datasets},
     options:{
       responsive:true,
+      maintainAspectRatio:false,
       layout:{padding:{top:4,right:8,bottom:4,left:4}},
       plugins:{legend:{display:false},
         tooltip:{callbacks:{label:c=>`(${c.raw.x.toFixed(2)}, ${c.raw.y.toFixed(2)})`}}},
