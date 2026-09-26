@@ -415,7 +415,7 @@
   <!-- Page title -->
   <div class="page-title-section">
     <h1>QUBO-Based Training Data Selection</h1>
-    <p>RDS+ × QUBO × SA / 量子アニーラによる LLM 学習データ最適化パイプライン</p>
+    <p>RDS+ × QUBO × SA / 量子アニーラによる LLM インストラクションチューニング用データ最適化パイプライン</p>
   </div>
 
   <!-- 目的 -->
@@ -425,9 +425,9 @@
       <h2 class="obj-title">なぜ QUBO でデータを選ぶのか</h2>
     </div>
     <p class="obj-body">
-      アニーラを用いて、モデルの学習に有益なサンプルを高スコア順に選びつつ、
+      アニーラを用いて、モデルの<strong>インストラクションチューニング</strong>に有益なサンプルを高スコア順に選びつつ、
       互いに似た冗長なサンプルはペナルティとして排除する。
-      これにより <strong>最小のトークン資源</strong> で元の学習データ全体の分布を損なわない
+      これにより <strong>最小のトークン資源</strong> で元のインストラクションチューニング用データ全体の分布を損なわない
       サブセットを自動的に構築できる。
     </p>
 
@@ -749,34 +749,25 @@
 
   <!-- QUBO formula panel -->
   <div class="qubo-panel" id="qubo-panel">
-    <h3>QUBO 目的関数 <span id="backend-badge" class="badge-sa">SA</span><span id="sim-badge" style="display:none;" class="badge-sim">Simulated as SA</span></h3>
-
-    <!-- SA version (no penalty) -->
-    <div id="formula-sa-wrap">
-      <div class="math-block" style="margin-bottom:10px;">
-        <div id="formula-qubo-sa"></div>
-      </div>
-      <div style="font-size:11px;color:var(--muted);line-height:1.8;margin-top:4px;">
-        <span style="color:#a5b4fc;font-family:'JetBrains Mono',monospace;">h<sub>i</sub></span>：RDS+ 影響度スコア（大きいほど重要）&nbsp;&nbsp;
-        <span style="color:#fbbf24;font-family:'JetBrains Mono',monospace;">J<sub>ij</sub></span> = (η/k)² · r<sub>i</sub>r<sub>j</sub> · K<sub>ij</sub>（冗長ペナルティ、疎行列）<br/>
-        制約 <strong>Σ x<sub>i</sub> = k</strong> は <em>swap 近傍</em> で厳密に保持（λₖ ペナルティ不要）
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;flex-wrap:wrap;gap:6px;">
+      <h3 style="margin-bottom:0;">QUBO 目的関数</h3>
+      <div style="display:flex;gap:6px;align-items:center;">
+        <span id="backend-badge" class="badge-sa">SA</span>
+        <span id="sim-badge" style="display:none;" class="badge-sim">Simulated as SA</span>
       </div>
     </div>
 
-    <!-- Hardware version (with penalty) -->
-    <div id="formula-hw-wrap" style="display:none;">
-      <div class="math-block" style="margin-bottom:10px;">
-        <div id="formula-qubo-hw"></div>
-      </div>
-      <div style="font-size:11px;color:var(--muted);line-height:1.8;margin-top:4px;">
-        <span style="color:#f472b6;font-family:'JetBrains Mono',monospace;">λ<sub>k</sub>(Σx<sub>i</sub>−k)²</span>：基数制約ペナルティ（実機では全制約を QUBO に埋め込む必要がある）<br/>
-        λₖ が大きすぎると +2λₖ が全 J<sub>ij</sub> に加算され信号が埋もれるため慎重な調整が必要
-      </div>
+    <!-- 動的数式 (startAnalysis 時に再描画) -->
+    <div class="math-block" style="margin-bottom:10px;">
+      <div id="formula-qubo-dynamic"></div>
     </div>
+
+    <!-- 制約項の凡例 (動的に生成) -->
+    <div id="qf-terms-legend" style="font-size:11px;color:var(--muted);line-height:1.9;margin-top:6px;"></div>
 
     <div class="qf-sep" style="margin-top:12px;margin-bottom:10px;"></div>
     <div class="qf-constraint" id="qf-constraint">
-      制約: <span class="qf-ok">Σᵢ xᵢ = k</span>（swap移動で厳密に保持）&nbsp; xᵢ ∈ {0, 1}
+      制約: <span class="qf-ok">Σᵢ xᵢ = k</span>（swap移動で厳密に保持）&nbsp; xᵢ ∈ {0,1}
     </div>
   </div>
 
@@ -1189,14 +1180,16 @@ function startAnalysis() {
   const k=parseInt(document.getElementById('range-k').value);
   goToScreen(2);
 
-  // Update QUBO formula display based on backend
+  // Update QUBO formula display based on backend + active constraints
   const isSA = backend==='sa';
   const hasToken = !!apiToken && !isSA;
   document.getElementById('backend-badge').textContent=isSA?'SA':backend==='amplify'?'Amplify':'D-Wave';
   document.getElementById('backend-badge').className=isSA?'badge-sa':'badge-hw';
   document.getElementById('sim-badge').style.display=(isSA||hasToken)?'none':'inline-block';
-  document.getElementById('formula-sa-wrap').style.display=isSA?'block':'none';
-  document.getElementById('formula-hw-wrap').style.display=isSA?'none':'block';
+
+  // Build QUBO formula dynamically
+  buildQUBOFormula(k, isSA);
+
   document.getElementById('qf-constraint').innerHTML = isSA
     ? '制約: <span class="qf-ok">Σᵢ xᵢ = k</span>（swap移動で厳密に保持）&nbsp; xᵢ ∈ {0,1}'
     : '制約: <span style="color:#f472b6;">λₖ(Σᵢ xᵢ−k)²</span> をペナルティとして H(x) に加算 &nbsp; xᵢ ∈ {0,1}';
@@ -1721,6 +1714,45 @@ function buildHScoreChart() {
   });
 }
 
+// ── QUBO 動的フォーミュラ ──
+function buildQUBOFormula(k, isSA) {
+  const C = getConstraints();
+
+  // ── 数式本体を構築 ──
+  // 基本項
+  let tex = 'H(\\mathbf{x}) \\;=\\;'
+    + ' \\underbrace{-\\sum_{i} h_i x_i}_{\\text{影響度}}'
+    + ' \\;+\\; \\underbrace{\\sum_{\\substack{(i,j)\\\\\\cos_{ij}\\geq\\tau}} J_{ij} x_i x_j}_{\\text{冗長}}';
+
+  // カーディナリティ制約（SA = swap で保持 → 式には常に記載、ただし注釈で区別）
+  tex += ' \\;+\\; \\underbrace{\\lambda_k\\!\\left(\\textstyle\\sum_i x_i - k\\right)^{\\!2}}_{\\text{基数制約}}';
+
+  // 追加制約（ON のものだけ）
+  if (C.tok.on)  tex += ' \\;+\\; \\underbrace{\\lambda_{\\text{tok}}\\!\\left(\\textstyle\\sum_i c_i x_i - C_{\\max}\\right)_{\\!+}^{2}}_{\\text{tok 予算}}';
+  if (C.task.on) tex += ' \\;+\\; \\underbrace{\\lambda_{\\text{task}}\\sum_t\\!\\left(m_t - \\textstyle\\sum_{i\\in\\mathcal{T}_t}\\!x_i\\right)_{\\!+}^{2}}_{\\text{task 下限}}';
+  if (C.src.on)  tex += ' \\;+\\; \\underbrace{\\lambda_{\\text{src}}\\sum_t\\!\\left(\\textstyle\\sum_{i\\in\\mathcal{T}_t}\\!x_i - r k\\right)_{\\!+}^{2}}_{\\text{src 上限}}';
+
+  const el = document.getElementById('formula-qubo-dynamic');
+  if (el) {
+    try { katex.render(tex, el, {throwOnError:false, displayMode:true}); }
+    catch(e) { el.textContent = tex; }
+  }
+
+  // ── 凡例テキスト ──
+  const terms = [
+    `<span style="color:#a5b4fc;font-family:'JetBrains Mono',monospace;">h<sub>i</sub></span>：RDS+ 影響度スコア`,
+    `<span style="color:#fbbf24;font-family:'JetBrains Mono',monospace;">J<sub>ij</sub></span> = (η/k)²·r<sub>i</sub>r<sub>j</sub>·K<sub>ij</sub>（冗長ペナルティ、疎行列）`,
+    isSA
+      ? `<span style="color:#34d399;font-family:'JetBrains Mono',monospace;">λ<sub>k</sub></span>：基数制約 — swap 近傍で厳密保持（λₖ=0 相当）`
+      : `<span style="color:#f472b6;font-family:'JetBrains Mono',monospace;">λ<sub>k</sub></span>：基数制約ペナルティ（実機は全制約を QUBO に埋め込む）`,
+  ];
+  if (C.tok.on)  terms.push(`<span style="color:#818cf8;font-family:'JetBrains Mono',monospace;">λ<sub>tok</sub></span> = ${C.tok.lam}，C<sub>max</sub> = ${C.tok.max.toLocaleString()} tok，(·)₊ = max(0,·)`);
+  if (C.task.on) terms.push(`<span style="color:#fb923c;font-family:'JetBrains Mono',monospace;">λ<sub>task</sub></span> = ${C.task.lam}，m<sub>t</sub> = ${C.task.min} samples / task`);
+  if (C.src.on)  terms.push(`<span style="color:#f472b6;font-family:'JetBrains Mono',monospace;">λ<sub>src</sub></span> = ${C.src.lam}，r = ${C.src.ratio}（単一ソース上限比率）`);
+
+  document.getElementById('qf-terms-legend').innerHTML = terms.join('<br/>');
+}
+
 // ── KaTeX rendering ──
 function renderKatex() {
   const D = {throwOnError: false, displayMode: true};
@@ -1738,13 +1770,17 @@ function renderKatex() {
   K('formula-rdsl',
     'h_i = \\sum_{t} w_t \\cdot \\max\\bigl(W_t^{\\top}\\,\\varphi(x_i)\\bigr)');
 
-  // Screen 2: QUBO formulas (SA — no cardinality penalty)
-  K('formula-qubo-sa',
-    'H(\\mathbf{x}) \\;=\\; -\\underbrace{\\sum_{i} h_i\\,x_i}_{\\text{影響度項}} \\;+\\; \\underbrace{\\sum_{\\substack{(i,j)\\\\\\cos_{ij}\\geq\\tau}} J_{ij}\\,x_i x_j}_{\\text{冗長ペナルティ項}}');
-
-  // Screen 2: QUBO formula (hardware — with cardinality penalty)
-  K('formula-qubo-hw',
-    'H(\\mathbf{x}) \\;=\\; -\\sum_{i} h_i x_i \\;+\\; \\sum_{(i,j)} J_{ij}x_i x_j \\;+\\; \\lambda_k\\!\\left(\\sum_{i} x_i - k\\right)^{\\!2}');
+  // Screen 2: QUBO formula は startAnalysis() → buildQUBOFormula() で動的に描画するため
+  // ここでは初期プレビュー（SA・制約なし）を描画しておく
+  const el = document.getElementById('formula-qubo-dynamic');
+  if (el) {
+    try {
+      katex.render(
+        'H(\\mathbf{x}) \\;=\\; \\underbrace{-\\sum_{i} h_i x_i}_{\\text{影響度}} \\;+\\; \\underbrace{\\sum_{(i,j)} J_{ij} x_i x_j}_{\\text{冗長}} \\;+\\; \\underbrace{\\lambda_k\\!\\left(\\textstyle\\sum_i x_i - k\\right)^{\\!2}}_{\\text{基数制約}}',
+        el, {throwOnError:false, displayMode:true}
+      );
+    } catch(e) {}
+  }
 }
 
 document.addEventListener('DOMContentLoaded', () => {
