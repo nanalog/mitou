@@ -56,6 +56,29 @@
     .grid3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:16px;margin-bottom:16px;}
     @media(max-width:720px){.grid2,.grid3{grid-template-columns:1fr;}}
 
+    /* ── Objective section ── */
+    .objective-section{margin-bottom:28px;padding:24px 26px;
+      background:linear-gradient(135deg,rgba(99,102,241,.05) 0%,rgba(16,185,129,.04) 100%);
+      border:1px solid rgba(99,102,241,.18);border-radius:var(--radius);}
+    .obj-header{margin-bottom:10px;}
+    .obj-eyebrow{font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.1em;
+      color:var(--accent);display:block;margin-bottom:4px;}
+    .obj-title{font-size:17px;font-weight:800;color:var(--text);margin:0;}
+    .obj-body{font-size:13px;color:var(--muted);line-height:1.8;margin-bottom:18px;
+      max-width:760px;}
+    .obj-body strong{color:var(--text);}
+    .obj-benefit-title{font-size:10px;font-weight:700;text-transform:uppercase;
+      letter-spacing:.08em;color:var(--muted2);margin-bottom:10px;}
+    .obj-benefit-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;}
+    @media(max-width:800px){.obj-benefit-grid{grid-template-columns:repeat(2,1fr);}}
+    @media(max-width:520px){.obj-benefit-grid{grid-template-columns:1fr;}}
+    .obj-benefit-card{background:#fff;border:1px solid var(--border);border-radius:10px;
+      padding:12px 14px;display:flex;flex-direction:column;gap:4px;}
+    .obc-icon{width:28px;height:28px;border-radius:7px;display:flex;align-items:center;
+      justify-content:center;font-size:14px;margin-bottom:4px;flex-shrink:0;}
+    .obc-name{font-size:11px;font-weight:700;color:var(--text);}
+    .obc-desc{font-size:10px;color:var(--muted);line-height:1.5;}
+
     /* ── Pipeline flow with token counts ── */
     .pipeline-section{margin-bottom:24px;}
     .pipeline-section h2{font-size:12px;font-weight:700;color:var(--muted2);
@@ -393,6 +416,57 @@
   <div class="page-title-section">
     <h1>QUBO-Based Training Data Selection</h1>
     <p>RDS+ × QUBO × SA / 量子アニーラによる LLM 学習データ最適化パイプライン</p>
+  </div>
+
+  <!-- 目的 -->
+  <div class="objective-section">
+    <div class="obj-header">
+      <span class="obj-eyebrow">Objective</span>
+      <h2 class="obj-title">なぜ QUBO でデータを選ぶのか</h2>
+    </div>
+    <p class="obj-body">
+      アニーラを用いて、モデルの学習に有益なサンプルを高スコア順に選びつつ、
+      互いに似た冗長なサンプルはペナルティとして排除する。
+      これにより <strong>最小のトークン資源</strong> で元の学習データ全体の分布を損なわない
+      サブセットを自動的に構築できる。
+    </p>
+
+    <!-- 分布を保つことのメリット -->
+    <div class="obj-benefits">
+      <div class="obj-benefit-title">元の分布を保つことで得られるメリット</div>
+      <div class="obj-benefit-grid">
+        <div class="obj-benefit-card">
+          <div class="obc-icon" style="background:rgba(99,102,241,.1);color:#818cf8;">⚖</div>
+          <div class="obc-name">汎化性能の維持</div>
+          <div class="obc-desc">特定タスクへの過学習を防ぎ、未知データへの汎化を保つ</div>
+        </div>
+        <div class="obj-benefit-card">
+          <div class="obc-icon" style="background:rgba(52,211,153,.1);color:#34d399;">⟺</div>
+          <div class="obc-name">ドメインバランスの保持</div>
+          <div class="obc-desc">Alpaca・Dolly・FLAN・WizardLM の比率が崩れず、各能力が均等に学習される</div>
+        </div>
+        <div class="obj-benefit-card">
+          <div class="obc-icon" style="background:rgba(251,146,60,.1);color:#fb923c;">△</div>
+          <div class="obc-name">分布シフトの回避</div>
+          <div class="obc-desc">学習データと実際の利用シーンの乖離（covariate shift）を最小化する</div>
+        </div>
+        <div class="obj-benefit-card">
+          <div class="obc-icon" style="background:rgba(244,114,182,.1);color:#f472b6;">♻</div>
+          <div class="obc-name">破滅的忘却の抑制</div>
+          <div class="obc-desc">元分布に近いデータで継続学習することで、既存知識の忘却を抑える</div>
+        </div>
+        <div class="obj-benefit-card">
+          <div class="obc-icon" style="background:rgba(16,185,129,.1);color:#10b981;">✦</div>
+          <div class="obc-name">ベンチマーク安定性</div>
+          <div class="obc-desc">MMLU・HellaSwag 等の多様なタスクで Full Pool と遜色ない性能を維持</div>
+        </div>
+        <div class="obj-benefit-card">
+          <div class="obc-icon" style="background:rgba(245,158,11,.1);color:#f59e0b;">⚡</div>
+          <div class="obc-name">学習コストの削減</div>
+          <div class="obc-desc">トークン量 −91% でほぼ同等の性能 → GPU 時間・電力コストを大幅削減</div>
+        </div>
+      </div>
+    </div>
   </div>
 
   <!-- Pipeline flow with token counts -->
