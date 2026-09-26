@@ -3,845 +3,731 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>IMAGE AI</title>
+  <title>QUBO Data Selector</title>
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
-  <!-- ONNX Runtime Web (browser inference) -->
-  <script src="https://cdn.jsdelivr.net/npm/onnxruntime-web@1.19.2/dist/ort.min.js"></script>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet" />
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
   <style>
-    /* ── Design tokens ─────────────────────────────────── */
     :root {
-      --bg:          #0f172a;
-      --surface:     #1e293b;
-      --surface2:    #0f172a;
-      --border:      #334155;
-      --border2:     #475569;
-      --text:        #f8fafc;
-      --muted:       #94a3b8;
-      --accent:      #6366f1;
-      --accent2:     #a78bfa;
-      --success:     #10b981;
-      --danger:      #ef4444;
-      --radius:      14px;
+      --bg: #0f172a; --surface: #1e293b; --surface2: #162032; --border: #334155;
+      --border2: #475569; --text: #f8fafc; --muted: #94a3b8; --muted2: #64748b;
+      --accent: #6366f1; --accent-lt: #a5b4fc; --success: #10b981;
+      --amber: #f59e0b; --red: #ef4444; --pink: #ec4899; --radius: 14px;
     }
-
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    body { background: var(--bg); color: var(--text); font-family: 'Inter', sans-serif; min-height: 100vh; }
 
-    body {
-      background: var(--bg);
-      color: var(--text);
-      font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
-      min-height: 100vh;
-    }
-
-    /* ── Nav ─────────────────────────────────────────────── */
+    /* ── Nav ── */
     nav {
-      background: var(--surface);
-      border-bottom: 1px solid var(--border);
-      padding: 0 32px;
-      height: 58px;
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      position: sticky;
-      top: 0;
-      z-index: 100;
+      background: var(--surface); border-bottom: 1px solid var(--border);
+      padding: 0 32px; height: 58px; display: flex; align-items: center;
+      justify-content: space-between; position: sticky; top: 0; z-index: 100;
     }
-    .nav-logo {
-      font-size: 18px;
-      font-weight: 700;
-      background: linear-gradient(90deg, #818cf8, #c084fc);
-      -webkit-background-clip: text;
-      -webkit-text-fill-color: transparent;
-      letter-spacing: -0.3px;
+    .logo { font-size: 17px; font-weight: 700; background: linear-gradient(90deg,#818cf8,#c084fc);
+      -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
+    .step-bar { display: flex; align-items: center; gap: 0; }
+    .step { display: flex; align-items: center; gap: 8px; padding: 6px 14px; border-radius: 20px;
+      font-size: 12px; font-weight: 600; color: var(--muted2); transition: all .3s; }
+    .step.active { background: rgba(99,102,241,.15); color: var(--accent-lt); }
+    .step.done { color: var(--success); }
+    .step-num { width: 20px; height: 20px; border-radius: 50%; border: 1.5px solid currentColor;
+      display: flex; align-items: center; justify-content: center; font-size: 10px; flex-shrink: 0; }
+    .step-sep { width: 24px; height: 1px; background: var(--border); }
+
+    /* ── Screen container ── */
+    .screen { display: none; animation: fadeIn .4s ease; }
+    .screen.active { display: block; }
+    @keyframes fadeIn { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: none; } }
+    .container { max-width: 1080px; margin: 0 auto; padding: 36px 24px; }
+
+    /* ── Cards ── */
+    .card {
+      background: var(--surface); border: 1px solid var(--border);
+      border-radius: var(--radius); padding: 24px;
     }
-    .nav-status {
-      font-size: 13px;
-      color: var(--muted);
+    .card-label { font-size: 11px; font-weight: 600; text-transform: uppercase;
+      letter-spacing: .07em; color: var(--muted2); margin-bottom: 14px; }
+
+    /* ── Screen 1: Input ── */
+    .s1-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin-bottom: 20px; }
+    .s1-grid-3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 20px; margin-bottom: 20px; }
+    @media(max-width:700px) { .s1-grid,.s1-grid-3 { grid-template-columns: 1fr; } }
+
+    .info-row { display: flex; justify-content: space-between; align-items: baseline;
+      padding: 9px 0; border-bottom: 1px solid var(--border); font-size: 13px; }
+    .info-row:last-child { border-bottom: none; }
+    .info-key { color: var(--muted); }
+    .info-val { font-weight: 600; font-family: 'JetBrains Mono', monospace; font-size: 12px; }
+
+    .tag-row { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 4px; }
+    .tag { padding: 3px 10px; border-radius: 20px; font-size: 11px; font-weight: 500; }
+    .tag-0 { background: rgba(99,102,241,.15); color: #818cf8; border: 1px solid rgba(99,102,241,.25); }
+    .tag-1 { background: rgba(52,211,153,.1);  color: #34d399; border: 1px solid rgba(52,211,153,.2); }
+    .tag-2 { background: rgba(251,146,60,.1);  color: #fb923c; border: 1px solid rgba(251,146,60,.2); }
+    .tag-3 { background: rgba(244,114,182,.1); color: #f472b6; border: 1px solid rgba(244,114,182,.2); }
+
+    /* Param slider */
+    .param-block { margin-bottom: 20px; }
+    .param-header { display: flex; justify-content: space-between; margin-bottom: 8px; }
+    .param-name { font-size: 13px; font-weight: 600; }
+    .param-val { font-size: 13px; font-weight: 700; color: var(--accent-lt);
+      font-family: 'JetBrains Mono', monospace; }
+    input[type=range] {
+      width: 100%; height: 6px; border-radius: 3px; appearance: none;
+      background: linear-gradient(to right, var(--accent) 0%, var(--accent) var(--pct), var(--border2) var(--pct), var(--border2) 100%);
+      cursor: pointer; outline: none;
     }
-    .model-badge {
-      display: inline-flex;
-      align-items: center;
-      gap: 6px;
-      font-size: 12px;
-      padding: 4px 10px;
-      border-radius: 20px;
-      background: rgba(99,102,241,0.12);
-      border: 1px solid rgba(99,102,241,0.25);
-      color: #a5b4fc;
+    input[type=range]::-webkit-slider-thumb {
+      appearance: none; width: 16px; height: 16px; border-radius: 50%;
+      background: #fff; box-shadow: 0 0 0 3px var(--accent); border: none;
     }
-    .dot {
-      width: 7px;
-      height: 7px;
-      border-radius: 50%;
-      background: var(--muted);
-      flex-shrink: 0;
+    .param-desc { font-size: 11px; color: var(--muted2); margin-top: 5px; }
+
+    .backend-row { display: flex; gap: 8px; margin-top: 8px; }
+    .backend-btn {
+      flex: 1; padding: 10px 8px; border-radius: 9px; border: 1px solid var(--border2);
+      background: transparent; color: var(--muted); font-size: 12px; font-weight: 600;
+      font-family: 'Inter', sans-serif; cursor: pointer; transition: all .2s;
     }
-    .dot.ready   { background: var(--success); box-shadow: 0 0 6px var(--success); }
-    .dot.loading { background: #fbbf24; animation: pulse-dot 1s infinite; }
-    .dot.error   { background: var(--danger); }
-    @keyframes pulse-dot {
-      0%,100% { opacity: 1; } 50% { opacity: 0.3; }
+    .backend-btn.active { border-color: var(--accent); color: var(--accent-lt); background: rgba(99,102,241,.1); }
+    .backend-sub { font-size: 10px; font-weight: 400; color: var(--muted2); display: block; margin-top: 2px; }
+
+    .btn-start {
+      width: 100%; padding: 16px; border-radius: 10px; border: none;
+      background: linear-gradient(135deg, #6366f1, #4f46e5);
+      color: #fff; font-size: 16px; font-weight: 700; font-family: 'Inter', sans-serif;
+      cursor: pointer; box-shadow: 0 4px 20px rgba(99,102,241,.4);
+      transition: all .2s; margin-top: 8px;
+    }
+    .btn-start:hover { transform: translateY(-2px); box-shadow: 0 8px 28px rgba(99,102,241,.55); }
+
+    /* Scale warning */
+    .scale-note {
+      padding: 12px 16px; border-radius: 9px; font-size: 12px; margin-top: 12px;
+      background: rgba(245,158,11,.07); border: 1px solid rgba(245,158,11,.2); color: #fbbf24; line-height: 1.6;
     }
 
-    /* ── Main layout ─────────────────────────────────────── */
-    .container {
-      max-width: 1100px;
-      margin: 40px auto;
-      padding: 0 24px;
-    }
+    /* ── Screen 2: Processing ── */
+    .s2-center { max-width: 700px; margin: 0 auto; }
+    .s2-title { text-align: center; margin-bottom: 32px; }
+    .s2-title h2 { font-size: 26px; font-weight: 700; margin-bottom: 8px;
+      background: linear-gradient(90deg, var(--accent-lt), var(--success));
+      -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
+    .s2-title p { color: var(--muted); font-size: 14px; }
 
-    /* ── Upload card ─────────────────────────────────────── */
-    .upload-card {
-      background: var(--surface);
-      border: 1px solid var(--border);
-      border-radius: var(--radius);
-      padding: 36px;
-      margin-bottom: 40px;
-    }
-    .section-title {
-      font-size: 13px;
-      font-weight: 600;
-      text-transform: uppercase;
-      letter-spacing: 0.08em;
-      color: var(--muted);
-      margin-bottom: 20px;
-    }
+    .chart-wrap { background: var(--surface); border: 1px solid var(--border);
+      border-radius: var(--radius); padding: 24px; position: relative; }
+    .chart-wrap canvas { max-height: 260px; }
 
-    /* Dropzone */
-    .dropzone {
-      border: 2px dashed var(--border2);
-      border-radius: 12px;
-      padding: 44px 24px;
-      text-align: center;
-      cursor: pointer;
-      transition: all 0.25s ease;
-      position: relative;
-      background: rgba(15,23,42,0.4);
-    }
-    .dropzone.dragover,
-    .dropzone:focus-within {
-      border-color: var(--accent);
-      background: rgba(99,102,241,0.06);
-    }
-    .dropzone input[type="file"] {
-      position: absolute;
-      inset: 0;
-      opacity: 0;
-      cursor: pointer;
-      width: 100%;
-      height: 100%;
-    }
-    .dz-icon {
-      width: 44px;
-      height: 44px;
-      fill: var(--border2);
-      margin-bottom: 14px;
-      transition: fill 0.25s;
-    }
-    .dropzone.dragover .dz-icon { fill: var(--accent); }
-    .dz-title {
-      font-size: 16px;
-      font-weight: 600;
-      color: var(--text);
-      margin-bottom: 6px;
-    }
-    .dz-sub {
-      font-size: 13px;
-      color: var(--muted);
-    }
-    #selected-file {
-      margin-top: 12px;
-      font-size: 13px;
-      font-weight: 600;
-      color: var(--success);
-      min-height: 20px;
-    }
+    .stats-row { display: grid; grid-template-columns: repeat(4,1fr); gap: 12px; margin-top: 16px; }
+    .stat-tile { background: var(--surface2); border: 1px solid var(--border);
+      border-radius: 10px; padding: 14px 16px; text-align: center; }
+    .stat-tile .sv { font-size: 20px; font-weight: 700; font-family: 'JetBrains Mono', monospace; color: var(--accent-lt); }
+    .stat-tile .sk { font-size: 11px; color: var(--muted); margin-top: 4px; text-transform: uppercase; letter-spacing: .05em; }
 
-    /* Title input */
-    .field-row {
-      display: flex;
-      gap: 12px;
-      align-items: flex-end;
-      margin-top: 20px;
-    }
-    .field-row input[type="text"] {
-      flex: 1;
-      padding: 12px 14px;
-      border-radius: 8px;
-      border: 1px solid var(--border2);
-      background: var(--surface2);
-      color: var(--text);
-      font-size: 14px;
-      font-family: inherit;
-      outline: none;
-      transition: border-color 0.2s;
-    }
-    .field-row input[type="text"]::placeholder { color: var(--muted); }
-    .field-row input[type="text"]:focus { border-color: var(--accent); }
-
-    /* Buttons */
-    .btn {
-      display: inline-flex;
-      align-items: center;
-      justify-content: center;
-      gap: 7px;
-      padding: 12px 22px;
-      border-radius: 9px;
-      border: none;
-      font-size: 14px;
-      font-weight: 600;
-      font-family: inherit;
-      cursor: pointer;
-      transition: all 0.2s ease;
-      white-space: nowrap;
-    }
-    .btn-primary {
-      background: linear-gradient(135deg, var(--accent), #4f46e5);
-      color: #fff;
-      box-shadow: 0 4px 14px rgba(99,102,241,0.35);
-    }
-    .btn-primary:hover:not(:disabled) {
-      transform: translateY(-2px);
-      box-shadow: 0 6px 20px rgba(99,102,241,0.5);
-    }
-    .btn-primary:disabled {
-      opacity: 0.45;
-      cursor: not-allowed;
-    }
-    .btn-ghost {
-      background: transparent;
-      color: var(--danger);
-      border: 1px solid rgba(239,68,68,0.2);
-      padding: 6px 12px;
-      font-size: 12px;
-    }
-    .btn-ghost:hover { background: rgba(239,68,68,0.08); border-color: var(--danger); }
-
-    /* Result preview */
-    #result-preview {
-      display: none;
-      margin-top: 24px;
-      padding: 20px;
-      background: var(--surface2);
-      border-radius: 10px;
-      border: 1px solid var(--border);
-      align-items: center;
-      gap: 20px;
-    }
-    #result-preview.visible { display: flex; }
-    #preview-img {
-      width: 80px;
-      height: 80px;
-      object-fit: cover;
-      border-radius: 8px;
-      flex-shrink: 0;
-      border: 1px solid var(--border);
-    }
-    .result-info { flex: 1; }
-    .result-label { font-size: 11px; color: var(--muted); text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 4px; }
-    .result-value { font-size: 22px; font-weight: 700; color: var(--text); margin-bottom: 10px; }
-    .conf-row { display: flex; justify-content: space-between; font-size: 12px; margin-bottom: 6px; }
-    .conf-pct { color: var(--success); font-weight: 600; }
-    .progress-track { background: var(--bg); height: 7px; border-radius: 4px; overflow: hidden; }
-    .progress-fill {
-      height: 100%;
-      border-radius: 4px;
+    .progress-wrap { margin-top: 20px; }
+    .progress-bar { height: 6px; background: var(--border); border-radius: 3px; overflow: hidden; }
+    .progress-fill { height: 100%; border-radius: 3px;
       background: linear-gradient(90deg, var(--accent), var(--success));
-      transition: width 0.7s cubic-bezier(0.4,0,0.2,1);
-    }
-    .spinner {
-      display: none;
-      width: 28px;
-      height: 28px;
-      border: 3px solid var(--border);
-      border-top-color: var(--accent);
-      border-radius: 50%;
-      animation: spin 0.7s linear infinite;
-      flex-shrink: 0;
-    }
-    .spinner.visible { display: block; }
-    @keyframes spin { to { transform: rotate(360deg); } }
+      transition: width .1s linear; }
+    .progress-label { display: flex; justify-content: space-between; font-size: 12px;
+      color: var(--muted); margin-top: 6px; }
 
-    /* ── Gallery ─────────────────────────────────────────── */
-    .gallery-header {
-      display: flex;
-      justify-content: space-between;
-      align-items: baseline;
-      margin-bottom: 20px;
-    }
-    .gallery-title {
-      font-size: 20px;
-      font-weight: 700;
-      background: linear-gradient(90deg, #a78bfa, var(--accent));
-      -webkit-background-clip: text;
-      -webkit-text-fill-color: transparent;
-    }
-    .count-badge {
-      font-size: 12px;
-      color: var(--muted);
-    }
+    /* ── Screen 3: Output ── */
+    .s3-grid { display: grid; grid-template-columns: 1fr 420px; gap: 24px; }
+    @media(max-width:900px) { .s3-grid { grid-template-columns: 1fr; } }
 
-    .image-grid {
-      display: grid;
-      grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
-      gap: 24px;
+    /* PCA scatter */
+    .scatter-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 14px; flex-wrap: wrap; gap: 8px; }
+    .scatter-title { font-size: 15px; font-weight: 700; }
+    .toggle-row { display: flex; gap: 6px; flex-wrap: wrap; }
+    .toggle-btn {
+      display: flex; align-items: center; gap: 5px; padding: 5px 11px;
+      border-radius: 20px; border: 1px solid var(--border2); background: transparent;
+      font-size: 11px; font-weight: 600; font-family: 'Inter', sans-serif; cursor: pointer; transition: all .2s;
     }
+    .toggle-btn .dot { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; }
+    .toggle-btn.active { background: rgba(255,255,255,.06); border-color: currentColor; }
+    .toggle-btn:not(.active) { opacity: .45; }
 
-    .image-card {
-      background: var(--surface);
-      border: 1px solid var(--border);
-      border-radius: var(--radius);
-      overflow: hidden;
-      transition: transform 0.3s ease, box-shadow 0.3s ease, border-color 0.3s ease;
-      display: flex;
-      flex-direction: column;
-    }
-    .image-card:hover {
-      transform: translateY(-5px);
-      box-shadow: 0 12px 30px rgba(0,0,0,0.5);
-      border-color: var(--accent);
-    }
-    .img-wrapper {
-      aspect-ratio: 4/3;
-      overflow: hidden;
-      background: #090d16;
-    }
-    .img-wrapper img {
-      width: 100%;
-      height: 100%;
-      object-fit: cover;
-      transition: transform 0.5s ease;
-    }
-    .image-card:hover .img-wrapper img { transform: scale(1.05); }
+    /* Legend */
+    .legend-row { display: flex; gap: 16px; flex-wrap: wrap; margin-top: 12px; }
+    .legend-item { display: flex; align-items: center; gap: 6px; font-size: 11px; color: var(--muted); }
+    .legend-dot { width: 10px; height: 10px; border-radius: 50%; flex-shrink: 0; }
 
-    .card-body {
-      padding: 16px 18px;
-      flex: 1;
-      display: flex;
-      flex-direction: column;
-      gap: 12px;
-    }
-    .card-title-row {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-    }
-    .card-title {
-      font-size: 13px;
-      color: var(--muted);
-      font-weight: 500;
-      white-space: nowrap;
-      overflow: hidden;
-      text-overflow: ellipsis;
-      max-width: 75%;
-    }
-    .card-date {
-      font-size: 11px;
-      color: #64748b;
-      white-space: nowrap;
-    }
-    .pred-box {
-      background: rgba(99,102,241,0.08);
-      border: 1px solid rgba(99,102,241,0.18);
-      border-radius: 9px;
-      padding: 11px 14px;
-    }
-    .pred-lbl { font-size: 10px; color: #a5b4fc; text-transform: uppercase; letter-spacing: 0.06em; margin-bottom: 3px; }
-    .pred-val { font-size: 20px; font-weight: 700; }
-    .conf-box { display: flex; flex-direction: column; gap: 6px; }
-    .conf-info { display: flex; justify-content: space-between; font-size: 12px; }
-    .conf-ttl { color: var(--muted); }
-    .conf-val { color: var(--success); font-weight: 600; font-variant-numeric: tabular-nums; }
+    /* Metric hero */
+    .metric-hero { text-align: center; padding: 24px; margin-bottom: 16px;
+      background: linear-gradient(135deg, rgba(99,102,241,.12), rgba(16,185,129,.08));
+      border: 1px solid rgba(99,102,241,.25); border-radius: var(--radius); }
+    .metric-hero .mh-val { font-size: 48px; font-weight: 800; color: var(--success);
+      font-variant-numeric: tabular-nums; line-height: 1; }
+    .metric-hero .mh-unit { font-size: 14px; color: var(--muted); margin-top: 4px; }
+    .metric-hero .mh-sub { font-size: 12px; color: var(--muted2); margin-top: 8px; }
 
-    .card-actions {
-      padding: 0 18px 14px;
-      display: flex;
-      justify-content: flex-end;
-    }
+    /* Comparison table */
+    table { width: 100%; border-collapse: collapse; font-size: 12px; }
+    thead th { padding: 8px 10px; text-align: right; color: var(--muted2); font-weight: 500;
+      font-size: 10px; text-transform: uppercase; letter-spacing: .04em; border-bottom: 1px solid var(--border); }
+    thead th:first-child { text-align: left; }
+    tbody td { padding: 9px 10px; text-align: right; border-bottom: 1px solid rgba(51,65,85,.5);
+      font-family: 'JetBrains Mono', monospace; font-size: 11px; }
+    tbody td:first-child { text-align: left; font-family: 'Inter', sans-serif;
+      font-weight: 600; font-size: 12px; display: flex; align-items: center; gap: 7px; }
+    tbody tr:last-child td { border-bottom: none; }
+    tbody tr.best { background: rgba(99,102,241,.07); }
+    tbody tr.best td { color: var(--accent-lt); }
+    tbody tr.best td:first-child { color: var(--text); }
+    .winner { font-size: 10px; padding: 2px 6px; border-radius: 4px;
+      background: rgba(16,185,129,.15); color: var(--success); font-weight: 700;
+      font-family: 'Inter', sans-serif; }
+    .method-dot { width: 9px; height: 9px; border-radius: 50%; flex-shrink: 0; }
 
-    .empty-state {
-      grid-column: 1 / -1;
-      text-align: center;
-      padding: 80px 0;
-      color: var(--muted);
+    /* Reset button */
+    .btn-reset {
+      padding: 10px 20px; border-radius: 9px; border: 1px solid var(--border2);
+      background: transparent; color: var(--muted); font-size: 13px; font-weight: 600;
+      font-family: 'Inter', sans-serif; cursor: pointer; transition: all .2s; margin-top: 20px;
     }
-    .empty-state p { margin-top: 10px; font-size: 14px; }
-
-    /* Toast */
-    #toast {
-      position: fixed;
-      bottom: 28px;
-      left: 50%;
-      transform: translateX(-50%) translateY(12px);
-      background: var(--surface);
-      border: 1px solid var(--border);
-      color: var(--text);
-      padding: 11px 20px;
-      border-radius: 8px;
-      font-size: 13px;
-      box-shadow: 0 8px 24px rgba(0,0,0,0.4);
-      opacity: 0;
-      pointer-events: none;
-      transition: opacity 0.25s, transform 0.25s;
-      z-index: 200;
-    }
-    #toast.show {
-      opacity: 1;
-      transform: translateX(-50%) translateY(0);
-    }
-
-    /* ONNX note banner */
-    .model-note {
-      background: rgba(99,102,241,0.07);
-      border: 1px solid rgba(99,102,241,0.2);
-      border-radius: 9px;
-      padding: 13px 16px;
-      font-size: 13px;
-      color: #a5b4fc;
-      margin-bottom: 20px;
-      line-height: 1.55;
-    }
-    .model-note strong { color: var(--text); }
-
-    @media (max-width: 600px) {
-      .container { padding: 0 14px; }
-      .upload-card { padding: 20px; }
-      .field-row { flex-direction: column; }
-      .field-row .btn { width: 100%; }
-    }
+    .btn-reset:hover { border-color: var(--accent); color: var(--accent-lt); }
   </style>
 </head>
 <body>
 
-<!-- Nav -->
+<!-- ── Nav ── -->
 <nav>
-  <span class="nav-logo">IMAGE AI</span>
-  <div style="display:flex;align-items:center;gap:14px;">
-    <span class="model-badge">
-      <span class="dot" id="model-dot"></span>
-      <span id="model-label">Loading model…</span>
-    </span>
+  <span class="logo">QUBO Data Selector</span>
+  <div class="step-bar">
+    <div class="step active" id="step-1"><span class="step-num">1</span>Input</div>
+    <div class="step-sep"></div>
+    <div class="step" id="step-2"><span class="step-num">2</span>Solve</div>
+    <div class="step-sep"></div>
+    <div class="step" id="step-3"><span class="step-num">3</span>Results</div>
   </div>
 </nav>
 
-<div class="container">
+<!-- ════════════════════════════════ SCREEN 1: Input ════════════════════════════════ -->
+<div id="screen-1" class="screen active">
+  <div class="container">
 
-  <!-- Upload card -->
-  <div class="upload-card">
-    <div class="section-title">New Analysis</div>
+    <div class="s1-grid">
+      <!-- Base model card -->
+      <div class="card">
+        <div class="card-label">Base Model</div>
+        <div class="info-row"><span class="info-key">Model</span><span class="info-val">TinyLlama-1.1B-Chat-v1.0</span></div>
+        <div class="info-row"><span class="info-key">Parameters</span><span class="info-val">1.1B</span></div>
+        <div class="info-row"><span class="info-key">Embedding dim</span><span class="info-val">2048</span></div>
+        <div class="info-row"><span class="info-key">Penultimate layer</span><span class="info-val">hidden_states[-2]</span></div>
+        <div class="info-row"><span class="info-key">Scoring mode</span><span class="info-val">centroid (RDS+)</span></div>
+      </div>
 
-    <div class="model-note" id="model-note">
-      <strong>CIFAR-10 ResNet18</strong> — ONNX Runtime Web で推論します。
-      モデルを読み込み中です…初回は少し時間がかかります。
-    </div>
-
-    <!-- Dropzone -->
-    <div class="dropzone" id="dropzone" role="button" tabindex="0" aria-label="Upload image">
-      <input type="file" id="file-input" accept="image/*" aria-label="Choose image file" />
-      <svg class="dz-icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">
-        <path d="M19.35 10.04C18.67 6.59 15.64 4 12 4 9.11 4 6.6 5.64 5.36 8.04
-                 2.34 8.36 0 10.91 0 14c0 3.31 2.69 6 6 6h13c2.76 0 5-2.24
-                 5-5 0-2.64-2.05-4.78-4.65-4.96zM14 13v4h-4v-4H7l5-5 5 5h-3z"/>
-      </svg>
-      <div class="dz-title">Drag &amp; drop an image here</div>
-      <div class="dz-sub">or click to browse · JPEG / PNG / WebP</div>
-      <div id="selected-file"></div>
-    </div>
-
-    <div class="field-row">
-      <input type="text" id="title-input" placeholder="Title (optional)" />
-      <button class="btn btn-primary" id="analyze-btn" disabled>
-        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2">
-          <circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/>
-        </svg>
-        Analyze
-      </button>
-    </div>
-
-    <!-- Result preview + spinner -->
-    <div id="result-preview">
-      <div class="spinner" id="spinner"></div>
-      <img id="preview-img" src="" alt="preview" />
-      <div class="result-info" id="result-info" style="display:none;">
-        <div class="result-label">Prediction</div>
-        <div class="result-value" id="res-pred"></div>
-        <div class="conf-row">
-          <span style="color:var(--muted);font-size:12px;">Confidence</span>
-          <span class="conf-pct" id="res-conf"></span>
-        </div>
-        <div class="progress-track">
-          <div class="progress-fill" id="res-bar" style="width:0%"></div>
+      <!-- Dataset card -->
+      <div class="card">
+        <div class="card-label">Training Data Pool</div>
+        <div class="info-row"><span class="info-key">Total samples</span><span class="info-val">5,000</span></div>
+        <div class="info-row"><span class="info-key">Total tokens</span><span class="info-val">2,487,320</span></div>
+        <div class="info-row"><span class="info-key">Tasks</span><span class="info-val">4</span></div>
+        <div class="info-row"><span class="info-key">Avg tokens / sample</span><span class="info-val">497</span></div>
+        <div style="margin-top:14px;" class="card-label">Task breakdown</div>
+        <div class="tag-row">
+          <span class="tag tag-0">Alpaca ×1,250</span>
+          <span class="tag tag-1">Dolly ×1,250</span>
+          <span class="tag tag-2">FLAN ×1,250</span>
+          <span class="tag tag-3">WizardLM ×1,250</span>
         </div>
       </div>
     </div>
-  </div>
 
-  <!-- Gallery -->
-  <div class="gallery-header">
-    <div class="gallery-title">AI Inference Gallery</div>
-    <span class="count-badge" id="count-badge"></span>
+    <div class="s1-grid">
+      <!-- Params card -->
+      <div class="card">
+        <div class="card-label">Selection Parameters</div>
+
+        <div class="param-block">
+          <div class="param-header">
+            <span class="param-name">k — Samples to select</span>
+            <span class="param-val" id="val-k">500</span>
+          </div>
+          <input type="range" id="range-k" min="100" max="2000" step="50" value="500"
+            oninput="updateSlider('k',this.value,'100','2000')" style="--pct:26%;" />
+          <div class="param-desc">10% of pool → expected ~248K tokens selected</div>
+        </div>
+
+        <div class="param-block">
+          <div class="param-header">
+            <span class="param-name">τ — Similarity threshold</span>
+            <span class="param-val" id="val-tau">0.85</span>
+          </div>
+          <input type="range" id="range-tau" min="0.5" max="0.99" step="0.01" value="0.85"
+            oninput="updateSlider('tau',this.value,'0.50','0.99')" style="--pct:74%;" />
+          <div class="param-desc">Pairs with cos_sim ≥ τ get a redundancy penalty J<sub>ij</sub></div>
+        </div>
+
+        <div class="param-block">
+          <div class="param-header">
+            <span class="param-name">η — Redundancy weight</span>
+            <span class="param-val" id="val-eta">0.50</span>
+          </div>
+          <input type="range" id="range-eta" min="0.1" max="1.0" step="0.05" value="0.5"
+            oninput="updateSlider('eta',this.value,'0.10','1.00')" style="--pct:44%;" />
+          <div class="param-desc">J<sub>ij</sub> = (η/k)² · r<sub>i</sub>r<sub>j</sub> · K<sub>ij</sub></div>
+        </div>
+      </div>
+
+      <!-- Backend card -->
+      <div class="card">
+        <div class="card-label">Backend</div>
+        <div class="backend-row">
+          <button class="backend-btn active" id="btn-sa" onclick="selectBackend('sa')">
+            SA (Swap)<span class="backend-sub">N≤100K · k≤10K</span>
+          </button>
+          <button class="backend-btn" id="btn-amplify" onclick="selectBackend('amplify')">
+            Amplify<span class="backend-sub">N≤10K · k≤1K</span>
+          </button>
+          <button class="backend-btn" id="btn-dwave" onclick="selectBackend('dwave')">
+            D-Wave<span class="backend-sub">N≤5K · k≤500</span>
+          </button>
+        </div>
+        <div class="scale-note" id="scale-note">
+          <strong>SA (Simulated Annealing)</strong> — スワップ近傍で基数制約を厳密に満たします。
+          λ<sub>k</sub> ペナルティ不要。A100 GPU 相当で最大 10K 件選択可能。
+        </div>
+        <div style="margin-top:20px;">
+          <div class="card-label">Constraints (optional)</div>
+          <div class="info-row"><span class="info-key">Token budget</span><span class="info-val" style="color:var(--muted2);">disabled</span></div>
+          <div class="info-row"><span class="info-key">Task lower bound</span><span class="info-val" style="color:var(--muted2);">disabled</span></div>
+          <div class="info-row"><span class="info-key">Source upper bound</span><span class="info-val" style="color:var(--muted2);">disabled</span></div>
+        </div>
+      </div>
+    </div>
+
+    <button class="btn-start" onclick="startAnalysis()">▶ Start Analysis</button>
   </div>
-  <div class="image-grid" id="gallery"></div>
 </div>
 
-<!-- Toast -->
-<div id="toast"></div>
+<!-- ════════════════════════════════ SCREEN 2: Processing ════════════════════════════════ -->
+<div id="screen-2" class="screen">
+  <div class="container">
+    <div class="s2-center">
+      <div class="s2-title">
+        <h2 id="s2-heading">Simulated Annealing</h2>
+        <p id="s2-sub">QUBO を最適化しています。スワップ近傍で基数制約を保ちながら探索中…</p>
+      </div>
 
-<!-- Hidden canvas for preprocessing -->
-<canvas id="preprocess-canvas" width="32" height="32" style="display:none;"></canvas>
+      <div class="chart-wrap">
+        <canvas id="energy-chart"></canvas>
+      </div>
+
+      <div class="stats-row">
+        <div class="stat-tile"><div class="sv" id="sv-temp">50.0</div><div class="sk">Temperature</div></div>
+        <div class="stat-tile"><div class="sv" id="sv-energy">—</div><div class="sk">Energy</div></div>
+        <div class="stat-tile"><div class="sv" id="sv-accepts">0</div><div class="sk">Accepts</div></div>
+        <div class="stat-tile"><div class="sv" id="sv-selected" style="color:var(--success);">0</div><div class="sk">Selected</div></div>
+      </div>
+
+      <div class="progress-wrap">
+        <div class="progress-bar"><div class="progress-fill" id="prog-fill" style="width:0%"></div></div>
+        <div class="progress-label"><span id="prog-label">Sweep 0 / 5000</span><span id="prog-pct">0%</span></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ════════════════════════════════ SCREEN 3: Output ════════════════════════════════ -->
+<div id="screen-3" class="screen">
+  <div class="container">
+    <div class="s3-grid">
+
+      <!-- Left: PCA scatter -->
+      <div class="card">
+        <div class="scatter-header">
+          <span class="scatter-title">Embedding Distribution (PCA 2D)</span>
+          <div class="toggle-row" id="toggle-row"></div>
+        </div>
+        <canvas id="scatter-chart" style="max-height:380px;"></canvas>
+        <div class="legend-row" id="scatter-legend"></div>
+      </div>
+
+      <!-- Right: metrics + table -->
+      <div>
+        <div class="metric-hero">
+          <div class="mh-val" id="hero-val">—</div>
+          <div class="mh-unit">Token Reduction</div>
+          <div class="mh-sub" id="hero-sub">—</div>
+        </div>
+
+        <div class="card">
+          <div class="card-label" style="margin-bottom:10px;">Method Comparison</div>
+          <table>
+            <thead>
+              <tr>
+                <th>Method</th>
+                <th>Tokens</th>
+                <th>Reduc.</th>
+                <th>Redund.</th>
+                <th>WD↓</th>
+              </tr>
+            </thead>
+            <tbody id="compare-tbody"></tbody>
+          </table>
+          <div style="margin-top:12px;font-size:11px;color:var(--muted2);line-height:1.6;">
+            <strong style="color:var(--muted);">Redund.</strong> = cos_sim ≥ τ のペア数（少ないほど多様）<br/>
+            <strong style="color:var(--muted);">WD↓</strong> = PCA空間のWasserstein距離（小さいほど全体分布に近い）
+          </div>
+        </div>
+
+        <button class="btn-reset" onclick="resetToScreen1()">← New Analysis</button>
+      </div>
+    </div>
+  </div>
+</div>
 
 <script>
-// ════════════════════════════════════════════════════════════
-// Config
-// ════════════════════════════════════════════════════════════
-
-// model.onnx を docs/ フォルダと同じリポジトリに配置した場合のパス
-// GitHub Pages: <user>.github.io/<repo>/model/model.onnx
-const MODEL_URL = './model/model.onnx';
-
-const CLASS_NAMES = [
-  'airplane','automobile','bird','cat','deer',
-  'dog','frog','horse','ship','truck'
-];
-
-// IndexedDB key
-const DB_NAME    = 'imageai_db';
-const DB_VERSION = 1;
-const STORE_NAME = 'inferences';
-
-// ════════════════════════════════════════════════════════════
-// State
-// ════════════════════════════════════════════════════════════
-let session  = null;   // ort.InferenceSession
-let db       = null;   // IDBDatabase
-let fileData = null;   // { file, dataURL }
-
-// ════════════════════════════════════════════════════════════
-// UI helpers
-// ════════════════════════════════════════════════════════════
-const $ = id => document.getElementById(id);
-
-function setModelStatus(state) {
-  const dot   = $('model-dot');
-  const label = $('model-label');
-  const note  = $('model-note');
-  dot.className = 'dot ' + state;
-  if (state === 'loading') {
-    label.textContent = 'Loading model…';
-    note.innerHTML = '<strong>CIFAR-10 ResNet18</strong> — モデルを読み込み中です…初回は少し時間がかかります。';
-  } else if (state === 'ready') {
-    label.textContent = 'ResNet18 · Ready';
-    note.innerHTML = '<strong>CIFAR-10 ResNet18</strong> — モデルが読み込まれました。画像をアップロードして推論を開始してください。';
-  } else {
-    label.textContent = 'Model error';
-    note.innerHTML = '<strong>エラー</strong> — model.onnx が読み込めませんでした。リポジトリに <code>model/model.onnx</code> を配置してください。';
-  }
-}
-
-function showToast(msg, durationMs = 2800) {
-  const t = $('toast');
-  t.textContent = msg;
-  t.classList.add('show');
-  setTimeout(() => t.classList.remove('show'), durationMs);
-}
-
-// ════════════════════════════════════════════════════════════
-// IndexedDB setup
-// ════════════════════════════════════════════════════════════
-function openDB() {
-  return new Promise((resolve, reject) => {
-    const req = indexedDB.open(DB_NAME, DB_VERSION);
-    req.onupgradeneeded = e => {
-      const store = e.target.result.createObjectStore(STORE_NAME, { keyPath: 'id', autoIncrement: true });
-      store.createIndex('created_at', 'created_at', { unique: false });
-    };
-    req.onsuccess = e => resolve(e.target.result);
-    req.onerror   = e => reject(e.target.error);
-  });
-}
-
-function dbAdd(record) {
-  return new Promise((resolve, reject) => {
-    const tx  = db.transaction(STORE_NAME, 'readwrite');
-    const req = tx.objectStore(STORE_NAME).add(record);
-    req.onsuccess = e => resolve(e.target.result);
-    req.onerror   = e => reject(e.target.error);
-  });
-}
-
-function dbGetAll() {
-  return new Promise((resolve, reject) => {
-    const tx    = db.transaction(STORE_NAME, 'readonly');
-    const req   = tx.objectStore(STORE_NAME).index('created_at').getAll();
-    req.onsuccess = e => resolve(e.target.result.reverse());
-    req.onerror   = e => reject(e.target.error);
-  });
-}
-
-function dbDelete(id) {
-  return new Promise((resolve, reject) => {
-    const tx  = db.transaction(STORE_NAME, 'readwrite');
-    const req = tx.objectStore(STORE_NAME).delete(id);
-    req.onsuccess = () => resolve();
-    req.onerror   = e => reject(e.target.error);
-  });
-}
-
-// ════════════════════════════════════════════════════════════
-// Image preprocessing (matches Python transform)
-//   1. Resize to 32×32 via canvas
-//   2. Normalize to [0,1] (ToTensor)
-//   3. GCN: (x - mean) / (std + 1e-6)
-// ════════════════════════════════════════════════════════════
-function preprocessImage(imgElement) {
-  const canvas = $('preprocess-canvas');
-  const ctx    = canvas.getContext('2d');
-  ctx.drawImage(imgElement, 0, 0, 32, 32);
-  const pixels = ctx.getImageData(0, 0, 32, 32).data; // RGBA uint8
-
-  // Build float32 CHW tensor [3, 32, 32]
-  const tensor = new Float32Array(3 * 32 * 32);
-  for (let i = 0; i < 32 * 32; i++) {
-    tensor[i]              = pixels[i * 4]     / 255.0; // R
-    tensor[i + 32*32]      = pixels[i * 4 + 1] / 255.0; // G
-    tensor[i + 2 * 32*32]  = pixels[i * 4 + 2] / 255.0; // B
-  }
-
-  // GCN normalization (same as Python gcn())
-  let sum = 0;
-  for (let i = 0; i < tensor.length; i++) sum += tensor[i];
-  const mean = sum / tensor.length;
-
-  let varSum = 0;
-  for (let i = 0; i < tensor.length; i++) varSum += (tensor[i] - mean) ** 2;
-  const std = Math.sqrt(varSum / tensor.length) + 1e-6;
-
-  for (let i = 0; i < tensor.length; i++) tensor[i] = (tensor[i] - mean) / std;
-
-  return tensor;
-}
-
-// ════════════════════════════════════════════════════════════
-// ONNX inference
-// ════════════════════════════════════════════════════════════
-async function runInference(imgElement) {
-  const floatData = preprocessImage(imgElement);
-  const inputTensor = new ort.Tensor('float32', floatData, [1, 3, 32, 32]);
-  const feeds = { input: inputTensor };
-  const results = await session.run(feeds);
-  const output  = results['output'].data; // Float32Array length 10
-
-  // Softmax
-  const maxLogit = Math.max(...output);
-  const exps  = Array.from(output).map(v => Math.exp(v - maxLogit));
-  const sumExp = exps.reduce((a, b) => a + b, 0);
-  const probs  = exps.map(v => v / sumExp);
-
-  const predIdx  = probs.indexOf(Math.max(...probs));
-  return {
-    prediction:  CLASS_NAMES[predIdx],
-    probability: probs[predIdx] * 100,
+// ════ PRNG (seeded, for reproducible demo data) ════
+function makePRNG(seed) {
+  let s = seed >>> 0;
+  return () => {
+    s = (Math.imul(1664525, s) + 1013904223) >>> 0;
+    return s / 4294967295;
   };
 }
 
-// ════════════════════════════════════════════════════════════
-// Gallery rendering
-// ════════════════════════════════════════════════════════════
-function formatDate(isoStr) {
-  const d = new Date(isoStr);
-  return d.toLocaleDateString('en-US', { month:'short', day:'numeric' })
-       + ' ' + d.toLocaleTimeString('en-US', { hour:'2-digit', minute:'2-digit' });
+function randNormal(rng) {
+  const u1 = Math.max(rng(), 1e-10);
+  const u2 = rng();
+  return Math.sqrt(-2 * Math.log(u1)) * Math.cos(2 * Math.PI * u2);
 }
 
-function renderCard(record) {
-  const pct = record.probability.toFixed(2);
-  return `
-    <div class="image-card" id="card-${record.id}">
-      <div class="img-wrapper">
-        <img src="${record.dataURL}" alt="${record.title || 'image'}" loading="lazy" />
-      </div>
-      <div class="card-body">
-        <div class="card-title-row">
-          <span class="card-title" title="${record.title || ''}">${record.title || '(no title)'}</span>
-          <span class="card-date">${formatDate(record.created_at)}</span>
-        </div>
-        <div class="pred-box">
-          <div class="pred-lbl">Prediction</div>
-          <div class="pred-val">${record.prediction}</div>
-        </div>
-        <div class="conf-box">
-          <div class="conf-info">
-            <span class="conf-ttl">Confidence</span>
-            <span class="conf-val">${pct}%</span>
-          </div>
-          <div class="progress-track">
-            <div class="progress-fill" style="width:${record.probability}%"></div>
-          </div>
-        </div>
-      </div>
-      <div class="card-actions">
-        <button class="btn btn-ghost" onclick="deleteRecord(${record.id})">Delete</button>
-      </div>
-    </div>`;
-}
+// ════ Demo result data ════
+const METHODS = [
+  { key: 'qubo', name: 'QUBO (SA)',    color: '#818cf8', tokens: 224800, red: 91.0, h: 0.582, redund: 89,   wd: 7.83 },
+  { key: 'rr',   name: 'Round-Robin', color: '#f59e0b', tokens: 247500, red: 90.1, h: 0.651, redund: 312,  wd: 9.41 },
+  { key: 'rand', name: 'Random',      color: '#94a3b8', tokens: 248200, red: 90.1, h: 0.501, redund: 487,  wd: 10.87 },
+  { key: 'toph', name: 'Top-h (λ=0)', color: '#ef4444', tokens: 261300, red: 89.5, h: 0.734, redund: 1243, wd: 16.24 },
+];
 
-async function refreshGallery() {
-  const gallery = $('gallery');
-  const records = await dbGetAll();
-  $('count-badge').textContent = records.length > 0 ? `${records.length} image${records.length > 1 ? 's' : ''}` : '';
-  if (records.length === 0) {
-    gallery.innerHTML = `
-      <div class="empty-state">
-        <svg width="48" height="48" fill="none" stroke="#475569" stroke-width="1.5" viewBox="0 0 24 24">
-          <rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/>
-          <path d="m21 15-5-5L5 21"/>
-        </svg>
-        <p>No images analysed yet.<br/>Upload one above to get started.</p>
-      </div>`;
-    return;
+const TASK_COLORS = ['#818cf8','#34d399','#fb923c','#f472b6'];
+const TASK_NAMES  = ['Alpaca','Dolly','FLAN','WizardLM'];
+const TASK_CENTERS = [[-3,1],[3,2],[-2,-2.5],[2.5,-1.5]];
+const TASK_SIGMA   = [[1.2,1.0],[1.0,0.8],[1.1,0.9],[0.9,1.1]];
+const N_PER_TASK   = 200; // pool points per task
+const SEL_PER_TASK = 50;  // selected per task
+
+// ════ Generate PCA scatter data ════
+function generateScatterData() {
+  const rng = makePRNG(0xdeadbeef);
+  const pool = [];
+
+  // Generate 4 task clusters
+  for (let t = 0; t < 4; t++) {
+    const [cx, cy] = TASK_CENTERS[t];
+    const [sx, sy] = TASK_SIGMA[t];
+    for (let i = 0; i < N_PER_TASK; i++) {
+      const x = cx + randNormal(rng) * sx;
+      const y = cy + randNormal(rng) * sy;
+      // h-score proxy: similarity to centroid (higher near center)
+      const dist = Math.sqrt((x-cx)**2 + (y-cy)**2);
+      const h = Math.exp(-dist * 0.7);
+      pool.push({ x, y, task: t, dist, h, idx: pool.length });
+    }
   }
-  gallery.innerHTML = records.map(renderCard).join('');
+
+  // QUBO: 50 from each task, roughly uniform in distance (diverse)
+  const qubo = [];
+  for (let t = 0; t < 4; t++) {
+    const clust = pool.filter(p => p.task === t)
+      .sort((a, b) => a.dist - b.dist); // sorted near→far
+    // Pick every Nth to get spread
+    const step = clust.length / SEL_PER_TASK;
+    for (let i = 0; i < SEL_PER_TASK; i++) {
+      qubo.push(clust[Math.floor(i * step + rng() * step * 0.3)]);
+    }
+  }
+
+  // Round-Robin: 50 from each task, moderate spread (top h within task)
+  const rr = [];
+  for (let t = 0; t < 4; t++) {
+    const clust = pool.filter(p => p.task === t)
+      .sort((a, b) => b.h - a.h); // sorted by h-score desc
+    const step = clust.length / SEL_PER_TASK;
+    for (let i = 0; i < SEL_PER_TASK; i++) {
+      rr.push(clust[Math.floor(i * step * 0.5 + rng() * 5)]);
+    }
+  }
+
+  // Random: 200 uniform random from pool
+  const rand = [];
+  const shuffled = [...pool].sort(() => rng() - 0.5);
+  for (let i = 0; i < SEL_PER_TASK * 4; i++) rand.push(shuffled[i]);
+
+  // Top-h: 200 with highest h-score globally → concentrates near all centroids
+  const toph = [...pool].sort((a, b) => b.h - a.h).slice(0, SEL_PER_TASK * 4);
+
+  return { pool, qubo, rr, rand, toph };
 }
 
-async function deleteRecord(id) {
-  await dbDelete(id);
-  await refreshGallery();
-  showToast('Deleted.');
+const SCATTER_DATA = generateScatterData();
+
+// ════ State ════
+let backend = 'sa';
+let energyChart = null;
+let scatterChart = null;
+let animTimer = null;
+let visibleMethods = { qubo: true, rr: false, rand: false, toph: false };
+
+// ════ Screen 1 helpers ════
+function updateSlider(name, val, min, max) {
+  const num = parseFloat(val);
+  const pct = ((num - parseFloat(min)) / (parseFloat(max) - parseFloat(min)) * 100).toFixed(1);
+  document.getElementById('range-' + name).style.setProperty('--pct', pct + '%');
+  const display = name === 'k' ? Math.round(num) : num.toFixed(2);
+  document.getElementById('val-' + name).textContent = display;
 }
 
-// ════════════════════════════════════════════════════════════
-// File handling
-// ════════════════════════════════════════════════════════════
-function readFileAsDataURL(file) {
-  return new Promise((res, rej) => {
-    const reader = new FileReader();
-    reader.onload  = e => res(e.target.result);
-    reader.onerror = e => rej(e.target.error);
-    reader.readAsDataURL(file);
+function selectBackend(b) {
+  backend = b;
+  ['sa','amplify','dwave'].forEach(x => {
+    document.getElementById('btn-' + x).classList.toggle('active', x === b);
+  });
+  const notes = {
+    sa:      '<strong>SA (Simulated Annealing)</strong> — スワップ近傍で基数制約を厳密に満たします。λ<sub>k</sub> ペナルティ不要。A100 GPU 相当で最大 10K 件選択可能。',
+    amplify: '<strong>Fixstars Amplify</strong> — ペナルティモード (λ<sub>k</sub> 必須)。GPU アニーラ実機。N≤10K / k≤1K の規模で利用可能。本デモは SA でシミュレート。',
+    dwave:   '<strong>D-Wave Advantage</strong> — 量子アニーラ実機。N≤5K / k≤500 の規模で利用可能。本デモは SA でシミュレート。',
+  };
+  document.getElementById('scale-note').innerHTML = notes[b];
+}
+
+// ════ Screen transitions ════
+function goToScreen(n) {
+  document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+  document.getElementById('screen-' + n).classList.add('active');
+  [1,2,3].forEach(i => {
+    const el = document.getElementById('step-' + i);
+    el.classList.remove('active','done');
+    if (i < n) el.classList.add('done');
+    else if (i === n) el.classList.add('active');
+  });
+  window.scrollTo(0,0);
+}
+
+function resetToScreen1() {
+  if (animTimer) { clearInterval(animTimer); animTimer = null; }
+  goToScreen(1);
+}
+
+// ════ SA simulation ════
+function simulateSAEnergy(k) {
+  const rng = makePRNG(42);
+  const N = 150; // animation frames
+  const energies = [];
+  let E = -k * 0.35; // initial random energy
+  let T = 50;
+  for (let i = 0; i < N; i++) {
+    T *= 0.97;
+    const dE = (rng() - 0.62) * T * 2.5;
+    if (dE < 0 || rng() < Math.exp(-dE / Math.max(T, 0.1))) E += dE;
+    else E += dE * 0.1;
+    energies.push(parseFloat(E.toFixed(2)));
+  }
+  return energies;
+}
+
+// ════ Screen 2: run animation ════
+function startAnalysis() {
+  const k = parseInt(document.getElementById('range-k').value);
+  goToScreen(2);
+
+  const energies = simulateSAEnergy(k);
+  const N = energies.length;
+  const SWEEPS = 5000;
+
+  // Init chart
+  if (energyChart) energyChart.destroy();
+  const ctx = document.getElementById('energy-chart').getContext('2d');
+  energyChart = new Chart(ctx, {
+    type: 'line',
+    data: {
+      labels: [],
+      datasets: [{
+        label: 'QUBO Energy H(x)',
+        data: [],
+        borderColor: '#6366f1',
+        backgroundColor: 'rgba(99,102,241,0.08)',
+        borderWidth: 2,
+        pointRadius: 0,
+        tension: 0.3,
+        fill: true,
+      }]
+    },
+    options: {
+      responsive: true,
+      animation: false,
+      plugins: { legend: { display: false },
+        tooltip: { mode: 'index', intersect: false,
+          callbacks: { label: ctx => 'Energy: ' + ctx.parsed.y.toFixed(2) } }
+      },
+      scales: {
+        x: { ticks: { color: '#64748b', maxTicksLimit: 6 }, grid: { color: '#1e293b' },
+             title: { display: true, text: 'Sweep', color: '#64748b', font: { size: 11 } } },
+        y: { ticks: { color: '#64748b' }, grid: { color: '#334155' },
+             title: { display: true, text: 'Energy H(x)', color: '#64748b', font: { size: 11 } } },
+      }
+    }
+  });
+
+  let frame = 0;
+  animTimer = setInterval(() => {
+    if (frame >= N) {
+      clearInterval(animTimer);
+      animTimer = null;
+      setTimeout(() => buildOutputScreen(k), 600);
+      return;
+    }
+
+    const pct = (frame + 1) / N;
+    const sweep = Math.round(pct * SWEEPS);
+    const T = (50 * Math.pow(0.97, frame)).toFixed(1);
+
+    // Update chart
+    energyChart.data.labels.push(sweep);
+    energyChart.data.datasets[0].data.push(energies[frame]);
+    energyChart.update('none');
+
+    // Update stats
+    document.getElementById('sv-temp').textContent = T;
+    document.getElementById('sv-energy').textContent = energies[frame].toFixed(1);
+    document.getElementById('sv-accepts').textContent = Math.round(frame * 0.38 + frame * rng01() * 0.05);
+    document.getElementById('sv-selected').textContent = Math.round(k * Math.min(1, pct * 1.1));
+
+    // Progress
+    document.getElementById('prog-fill').style.width = (pct * 100) + '%';
+    document.getElementById('prog-label').textContent = `Sweep ${sweep} / ${SWEEPS}`;
+    document.getElementById('prog-pct').textContent = Math.round(pct * 100) + '%';
+
+    frame++;
+  }, 25);
+}
+
+function rng01() { return Math.random(); }
+
+// ════ Screen 3: build output ════
+function buildOutputScreen(k) {
+  goToScreen(3);
+
+  // Hero metric
+  const qubo = METHODS[0];
+  document.getElementById('hero-val').textContent = qubo.red.toFixed(1) + '%';
+  document.getElementById('hero-sub').textContent =
+    `${(qubo.tokens/1000).toFixed(0)}K tokens selected from 2,487K total · k=${k}`;
+
+  // Comparison table
+  const tbody = document.getElementById('compare-tbody');
+  const minWD = Math.min(...METHODS.map(m => m.wd));
+  tbody.innerHTML = METHODS.map((m, i) => `
+    <tr class="${i===0?'best':''}">
+      <td><span class="method-dot" style="background:${m.color}"></span>${m.name}${i===0?'<span class="winner">best</span>':''}</td>
+      <td>${(m.tokens/1000).toFixed(0)}K</td>
+      <td>${m.red.toFixed(1)}%</td>
+      <td>${m.redund}</td>
+      <td>${m.wd.toFixed(2)}${m.wd===minWD?'&nbsp;✓':''}</td>
+    </tr>`).join('');
+
+  // Build scatter chart
+  buildScatter();
+}
+
+// ════ Scatter plot ════
+function buildToggleRow() {
+  const row = document.getElementById('toggle-row');
+  row.innerHTML = '';
+  const configs = [
+    { key: 'qubo', label: 'QUBO',        color: '#818cf8' },
+    { key: 'rr',   label: 'Round-Robin', color: '#f59e0b' },
+    { key: 'rand', label: 'Random',      color: '#94a3b8' },
+    { key: 'toph', label: 'Top-h',       color: '#ef4444' },
+  ];
+  configs.forEach(c => {
+    const btn = document.createElement('button');
+    btn.className = 'toggle-btn' + (visibleMethods[c.key] ? ' active' : '');
+    btn.style.color = c.color;
+    btn.innerHTML = `<span class="dot" style="background:${c.color}"></span>${c.label}`;
+    btn.onclick = () => { visibleMethods[c.key] = !visibleMethods[c.key]; buildScatter(); };
+    row.appendChild(btn);
   });
 }
 
-function loadImageFromURL(url) {
-  return new Promise((res, rej) => {
-    const img = new Image();
-    img.onload  = () => res(img);
-    img.onerror = rej;
-    img.src = url;
-  });
-}
+function buildScatter() {
+  buildToggleRow();
 
-async function handleFile(file) {
-  if (!file || !file.type.startsWith('image/')) {
-    showToast('Please select an image file.');
-    return;
-  }
-  const dataURL = await readFileAsDataURL(file);
-  fileData = { file, dataURL };
-  $('selected-file').textContent = 'Selected: ' + file.name;
-  $('analyze-btn').disabled = (session === null);
+  // Legend
+  const legend = document.getElementById('scatter-legend');
+  legend.innerHTML = '<div class="legend-item"><span class="legend-dot" style="background:#334155"></span>Full pool (N=800)</div>' +
+    TASK_NAMES.map((n,i) => `<div class="legend-item"><span class="legend-dot" style="background:${TASK_COLORS[i]}"></span>${n}</div>`).join('');
 
-  // Show preview immediately
-  const preview = $('result-preview');
-  const prevImg = $('preview-img');
-  prevImg.src = dataURL;
-  $('result-info').style.display = 'none';
-  $('spinner').classList.remove('visible');
-  preview.classList.add('visible');
-}
+  const datasets = [];
 
-// ════════════════════════════════════════════════════════════
-// Analyze
-// ════════════════════════════════════════════════════════════
-async function analyze() {
-  if (!fileData || !session) return;
-
-  const btn = $('analyze-btn');
-  btn.disabled = true;
-  $('spinner').classList.add('visible');
-  $('result-info').style.display = 'none';
-
-  try {
-    const img  = await loadImageFromURL(fileData.dataURL);
-    const { prediction, probability } = await runInference(img);
-
-    // Show result in preview
-    $('res-pred').textContent = prediction;
-    $('res-conf').textContent = probability.toFixed(2) + '%';
-    $('res-bar').style.width  = probability + '%';
-    $('spinner').classList.remove('visible');
-    $('result-info').style.display = 'block';
-
-    // Save to IndexedDB
-    const record = {
-      title:       $('title-input').value.trim() || fileData.file.name,
-      dataURL:     fileData.dataURL,
-      prediction,
-      probability,
-      created_at:  new Date().toISOString(),
-    };
-    await dbAdd(record);
-    await refreshGallery();
-    showToast(`Analyzed: ${prediction} (${probability.toFixed(1)}%)`);
-
-    // Reset form
-    $('title-input').value = '';
-    $('file-input').value  = '';
-    $('selected-file').textContent = '';
-    fileData = null;
-    btn.disabled = (session === null);
-  } catch (err) {
-    console.error(err);
-    $('spinner').classList.remove('visible');
-    showToast('Inference failed. See console for details.', 4000);
-    btn.disabled = false;
-  }
-}
-
-// ════════════════════════════════════════════════════════════
-// Init
-// ════════════════════════════════════════════════════════════
-async function init() {
-  // Open IndexedDB
-  db = await openDB();
-  await refreshGallery();
-
-  // Load ONNX model
-  setModelStatus('loading');
-  try {
-    // Use WASM backend (works in all modern browsers without GPU)
-    ort.env.wasm.wasmPaths = 'https://cdn.jsdelivr.net/npm/onnxruntime-web@1.19.2/dist/';
-    session = await ort.InferenceSession.create(MODEL_URL, {
-      executionProviders: ['wasm'],
+  // Pool (gray, task-colored outlines)
+  TASK_NAMES.forEach((name, t) => {
+    const pts = SCATTER_DATA.pool.filter(p => p.task === t);
+    datasets.push({
+      label: name + ' (pool)',
+      data: pts.map(p => ({ x: p.x, y: p.y })),
+      backgroundColor: TASK_COLORS[t] + '22',
+      borderColor: TASK_COLORS[t] + '55',
+      borderWidth: 0.5,
+      pointRadius: 3,
+      pointHoverRadius: 4,
     });
-    setModelStatus('ready');
-    if (fileData) $('analyze-btn').disabled = false;
-  } catch (err) {
-    console.error('Model load failed:', err);
-    setModelStatus('error');
-  }
-
-  // Dropzone events
-  const dz        = $('dropzone');
-  const fileInput = $('file-input');
-
-  dz.addEventListener('dragover', e => { e.preventDefault(); dz.classList.add('dragover'); });
-  dz.addEventListener('dragleave', ()  => dz.classList.remove('dragover'));
-  dz.addEventListener('drop', e => {
-    e.preventDefault();
-    dz.classList.remove('dragover');
-    const f = e.dataTransfer.files[0];
-    if (f) handleFile(f);
-  });
-  fileInput.addEventListener('change', () => {
-    if (fileInput.files[0]) handleFile(fileInput.files[0]);
   });
 
-  $('analyze-btn').addEventListener('click', analyze);
+  // Overlay selected methods
+  const overlays = [
+    { key: 'qubo', data: SCATTER_DATA.qubo, color: '#818cf8', label: 'QUBO Selected' },
+    { key: 'rr',   data: SCATTER_DATA.rr,   color: '#f59e0b', label: 'Round-Robin Selected' },
+    { key: 'rand', data: SCATTER_DATA.rand,  color: '#94a3b8', label: 'Random Selected' },
+    { key: 'toph', data: SCATTER_DATA.toph,  color: '#ef4444', label: 'Top-h Selected' },
+  ];
+
+  overlays.forEach(o => {
+    if (!visibleMethods[o.key]) return;
+    datasets.push({
+      label: o.label,
+      data: o.data.map(p => ({ x: p.x, y: p.y })),
+      backgroundColor: o.color + 'cc',
+      borderColor: o.color,
+      borderWidth: 1,
+      pointRadius: 5,
+      pointHoverRadius: 7,
+    });
+  });
+
+  if (scatterChart) scatterChart.destroy();
+  const ctx = document.getElementById('scatter-chart').getContext('2d');
+  scatterChart = new Chart(ctx, {
+    type: 'scatter',
+    data: { datasets },
+    options: {
+      responsive: true,
+      plugins: {
+        legend: { display: false },
+        tooltip: {
+          callbacks: {
+            label: ctx => {
+              const d = ctx.raw;
+              return `(${d.x.toFixed(2)}, ${d.y.toFixed(2)})`;
+            }
+          }
+        }
+      },
+      scales: {
+        x: { ticks: { color: '#64748b' }, grid: { color: '#1e293b' },
+             title: { display: true, text: 'PC1', color: '#64748b', font: { size: 11 } } },
+        y: { ticks: { color: '#64748b' }, grid: { color: '#334155' },
+             title: { display: true, text: 'PC2', color: '#64748b', font: { size: 11 } } },
+      }
+    }
+  });
 }
-
-document.addEventListener('DOMContentLoaded', init);
 </script>
 </body>
 </html>
