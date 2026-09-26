@@ -146,8 +146,9 @@
     .bench-table tr.best-method{background:rgba(99,102,241,.07);}
     .bench-table tr.best-method td{color:var(--accent-lt);}
     .bench-best{font-weight:800;color:var(--success)!important;}
-    .bench-note{font-size:10px;color:var(--muted2);margin-top:10px;line-height:1.6;
-      padding:8px 12px;background:rgba(15,23,42,.5);border-radius:6px;}
+    .bench-note{font-size:11px;color:var(--muted);margin-top:12px;line-height:1.7;
+      padding:12px 16px;background:rgba(241,245,249,.8);border:1px solid var(--border);
+      border-left:3px solid var(--muted2);border-radius:8px;}
     .pip-arr{color:var(--border2);font-size:18px;flex-shrink:0;padding:0 4px;}
 
     .info-row{display:flex;justify-content:space-between;align-items:baseline;
@@ -637,7 +638,13 @@
         <span class="scatter-title">Embedding Distribution (PCA 2D of ℝ²⁰⁴⁸)</span>
         <div class="toggle-row" id="toggle-row"></div>
       </div>
-      <canvas id="scatter-chart" style="max-height:360px;"></canvas>
+      <div style="font-size:11px;color:var(--muted);line-height:1.6;margin-bottom:10px;
+        padding:8px 12px;background:var(--surface2);border-radius:7px;border:1px solid var(--border);">
+        TinyLlama-1.1B の最終隠れ層埋め込み <em>φ(x<sub>i</sub>) ∈ ℝ²⁰⁴⁸</em> を PCA で 2 次元に圧縮した散布図。
+        <strong>各色の薄い点</strong>はプール全体（5,000 samples）、<strong>不透明な点</strong>は各選択手法で選ばれたサンプル。
+        QUBO は全クラスタに均一に分布し（WD 最小）、Top-h は重心付近に集中する（高冗長性）。
+      </div>
+      <canvas id="scatter-chart" style="max-height:340px;"></canvas>
       <div class="legend-row" id="scatter-legend"></div>
     </div>
 
